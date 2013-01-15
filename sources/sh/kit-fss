@@ -1,0 +1,82 @@
+#!/bin/bash
+
+kit_fss_unset() {
+  unset kit_kit_has_fss_error
+  unset kit_fss_exit_on_error
+  unset kit_fss_read
+  unset kit_fss_read_path
+}
+
+
+kit_fss_has_error() {
+  local code=$?
+
+  fss_return_code -e $code
+
+  if [[ $? -eq 1 ]] ; then
+    echo -n $code
+  fi
+}
+
+kit_fss_exit_on_error() {
+  local return_code=$1
+  local message=$2
+
+  if [[ $(kit_fss_has_error $return_code) != "" ]] ; then
+    kit_message_error "$message"
+    cleanup_before_exit
+    exit -1
+  fi
+}
+
+kit_fss_read() {
+  local file=$1
+  local variable=$2
+  local list=$3
+  local name=$4
+  local count=$5
+  local select=$6
+  local data=
+
+  if [[ $(standard_is_empty $file) == "" || $(standard_is_empty $variable) == "" || $(standard_is_empty $list) == "" || $(standard_is_empty $count) == "" ]] ;then
+    kit_fss_exit_on_error $? "Invalid arguments passed to the '${c_notice}kit_fss_read$c_error' function while trying to process the file '$c_notice$file$c_error'"
+  elif [[ $name == "" ]] ; then
+    kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_extended_read -o"
+    data=$(fss_basic_list_read $file -n $list | fss_extended_read -o)
+  elif [[ $select == "" ]] ; then
+    kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_basic_read -c $count -n $name"
+    data=$(fss_basic_list_read $file -n $list | fss_basic_read -c $count -n $name)
+  else
+    kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_extended_read -c $count -s $select -n $name"
+    data=$(fss_basic_list_read $file -n $list | fss_extended_read -c $count -s $select -n $name)
+  fi
+
+  kit_fss_exit_on_error $? "Failed to read '$c_notice${list}:$name${c_error}' data from '$c_notice$file$c_error'"
+  eval $variable=\$data
+}
+
+kit_fss_read_path() {
+  local file=$1
+  local variable=$2
+  local list=$3
+  local name=$4
+  local count=$5
+  local select=$6
+  local data=
+
+  if [[ $(standard_is_empty $file) == "" || $(standard_is_empty $variable) == "" || $(standard_is_empty $list) == "" || $(standard_is_empty $count) == "" ]] ;then
+    kit_fss_exit_on_error $? "Invalid arguments passed to the '${c_notice}kit_fss_read_path$c_error' function while trying to process the file '$c_notice$file$c_error'"
+  elif [[ $name == "" ]] ; then
+    kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_extended_read -o | sed -e 's|/*$|/|'"
+    data=$(fss_basic_list_read $file -n $list | fss_extended_read -o | sed -e 's|/*$|/|')
+  elif [[ $select == "" ]] ; then
+    kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_basic_read -c $count -n $name | sed -e 's|/*$|/|'"
+    data=$(fss_basic_list_read $file -n $list | fss_basic_read -c $count -n $name | sed -e 's|/*$|/|')
+  else
+    kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_extended_read -c $count -s $select -n $name | sed -e 's|/*$|/|'"
+    data=$(fss_basic_list_read $file -n $list | fss_extended_read -c $count -s $select -n $name | sed -e 's|/*$|/|')
+  fi
+
+  kit_fss_exit_on_error $? "Failed to read '$c_notice${list}:$name${c_error}' data from '$c_notice$file$c_error'"
+  eval $variable=\$data
+}

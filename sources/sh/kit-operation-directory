@@ -1,0 +1,112 @@
+#!/bin/bash
+# There are different variants of the file operation: directory, directory_dereference.
+#
+# Operation 'directory':
+# - Installs a file without any special considerations.
+# - This will install symbolic links as symbolic links.
+#
+# Operation 'directory_dereference':
+# - Installs a directory, but dereferences all symbolic links, so symbolic links do not get copied and instead the actual files get copied.
+#
+# Arguments:
+#   name:
+#   - the name of the directory to install.
+#   - this is the name the directory is installed as.
+#   destination:
+#   - the directory name in which the directory will be installed to.
+#   source (conditionally optional):
+#   - if omitted, then the directory is created an not copied.
+#   - can only be ommitted for directory operation.
+#   - this is either the source directory or source file.
+#   - if it is a directory, then the file name is derived from the name argument above.
+#   source_name (optional):
+#   - The name of the directory in the source path if the name the directory is installed as is different than it is copied from.
+
+kit_operation_directory_unset() {
+  unset kit_operation_directory
+}
+
+kit_operation_directory() {
+  local name=
+  local destination=
+  local source=
+  local source_name=
+  local library_source=
+  local library_medium=
+  local filepath=
+  local dereference=
+
+  # operation controls
+  local parent=$parent-$self
+  local self=operation
+
+  kit_operation_message
+
+  name=$(echo object $line | fss_extended_read -c 0 -s 0)
+  destination=$(echo object $line | fss_extended_read -c 0 -s 1)
+  source=$(echo object $line | fss_extended_read -c 0 -s 2)
+  source_name=$(echo object $line | fss_extended_read -c 0 -s 3)
+
+  if [[ $(standard_is_empty $name) == "" ]] ; then
+    kit_operation_error "Missing file name"
+  fi
+
+  if [[ $(standard_is_empty $destination) == "" ]] ; then
+    kit_operation_error "Missing destination path"
+  fi
+
+  destination=$(echo $destination | sed -e 's|/*$|/|' -e 's|/*$|/|')
+
+  if [[ $operation == "directory_dereference" ]] ; then
+    dereference="dereference"
+  fi
+
+  if [[ $(standard_is_empty $source) == "" ]] ; then
+    if [[ ! -f $installation_base$destination$name ]] ; then
+      kit_message_shell "mkdir -p $installation_base$destination$name"
+      mkdir -p $installation_base$destination$name
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to create the directory '$c_notice$installation_base$destination$name$c_error'"
+      fi
+
+      kit_operation_attribute_apply directory "$installation_base$destination$name" $dereference
+      kit_operation_group_apply "$installation_base$destination$name" $dereference
+      kit_operation_mode_apply directory "$installation_base$destination$name" $dereference
+      #kit_operation_acess_apply directory "$installation_base$destination$name" $dereference
+    fi
+  else
+    source=$(echo $source | sed -e 's|/*$|/|' -e 's|/*$|/|')
+
+    if [[ $(standard_is_empty $source_name) == "" ]] ; then
+      filepath=$source
+    else
+      filepath=$source$source_name
+    fi
+
+    if [[ ! -d $filepath ]] ; then
+      kit_operation_error "Directory path '$c_notice$filepath$c_error' is not a valid directory"
+    fi
+
+    kit_operation_attribute_apply both "$installation_base$filepath" $dereference
+    kit_operation_group_apply "$installation_base$filepath" $dereference
+    kit_operation_mode_apply both "$installation_base$filepath" $dereference
+    #kit_operation_acess_apply both "$installation_base$filepath" $dereference
+
+    if [[ $operation == "directory" ]] ; then
+      kit_message_shell "cp -faR $filepath $installation_base$destination$name"
+      cp -faR $filepath $installation_base$destination$name
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to install the directory '$c_notice$filepath$c_error' to '$c_notice$installation_base$destination$name$c_error'"
+      fi
+    elif [[ $operation == "directory_dereference" ]] ; then
+      kit_message_shell "cp -faLR $filepath $installation_base$destination$name"
+      cp -faLR $filepath $installation_base$destination$name
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to install the directory '$c_notice$filepath$c_error' to '$c_notice$installation_base$destination$name$c_error'"
+      fi
+    fi
+  fi
+}

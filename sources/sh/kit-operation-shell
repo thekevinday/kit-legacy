@@ -1,0 +1,32 @@
+#!/bin/bash
+# this performs a shell command.
+# a shell command is a powerful and very flexible operation, but is also potentially dangereous.
+# whenever there is a non-shell operation equivalent, it is safer and better to use those instead.
+#
+# future versions will have a shell_safe operation that will execute the specified command as a non-root user, reducing the risks of this operation.
+#
+# unlike all of the previous commands, the shell command uses fss-0000 (basic) format, which does not accept individual arguments, but instead takes the entire content as is.
+
+kit_operation_shell_unset() {
+  unset kit_operation_shell
+}
+
+kit_operation_shell() {
+
+  # operation controls
+  local parent=$parent-$self
+  local self=operation
+
+  kit_operation_message
+
+  if [[ $(standard_is_empty $line) == "" ]] ; then
+    kit_operation_error "No shell command given"
+  fi
+
+  kit_message_shell "$line"
+  eval $line
+
+  if [[ $? -ne 0 ]] ; then
+    kit_operation_error "Something went wrong while executing the shell command"
+  fi
+}

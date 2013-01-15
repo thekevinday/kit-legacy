@@ -1,0 +1,128 @@
+#!/bin/bash
+
+kit_message_unset() {
+  unset kit_message_log
+  unset kit_message_error
+  unset kit_message_warning
+  unset kit_message_highlight
+  unset kit_message_important
+  unset kit_message_shell
+  unset kit_message_operation
+  unset kit_message
+  unset kit_message_error_no_log
+  unset kit_message_warning_no_log
+  unset kit_message_highlight_no_log
+  unset kit_message_important_no_log
+  unset kit_message_help
+}
+
+kit_message_log() {
+  kit_log_message $1 "$(echo ${@:2} | sed -e 's|\\033\[[[:digit:]];[[:digit:]]*m||g' -e 's|\\033\[[[:digit:]]*m||g')"
+}
+
+kit_message_error() {
+  echo -e "${c_error}ERROR: $*$c_reset"
+
+  kit_message_log error "$*"
+}
+
+kit_message_warning() {
+  echo -e "${c_warning}WARNING: $*$c_reset"
+
+  kit_message_log warning "$*"
+}
+
+kit_message_highlight() {
+  echo -e "$c_highlight$*$c_reset"
+
+  kit_message_log message "$*"
+}
+
+kit_message_important() {
+  echo -e "$c_important$*$c_reset"
+
+  kit_message_log message "$*"
+}
+
+kit_message_shell() {
+  if [[ $verbose == "y" ]] ; then
+    echo -e "$c_important$*$c_reset"
+  fi
+
+  kit_message_log shell "$*"
+}
+
+kit_message_operation() {
+  kit_message_log operation "$*"
+}
+
+kit_message() {
+  echo -e "$*"
+
+  kit_message_log message "$*"
+}
+
+kit_message_error_no_log() {
+  echo -e "${c_error}ERROR: $*$c_reset"
+}
+
+kit_message_warning_no_log() {
+  echo -e "${c_warning}WARNING: $*$c_reset"
+}
+
+kit_message_highlight_no_log() {
+  echo -e "$c_highlight$*$c_reset"
+}
+
+kit_message_important_no_log() {
+  echo -e "$c_important$*$c_reset"
+}
+
+kit_message_help() {
+  standard_help_title
+  echo -e "$c_highlight$system_name$c_reset $c_notice<${c_reset}operations$c_notice>$c_reset $c_notice[${c_reset}targets$c_notice]$c_reset $c_notice[${c_reset}options$c_notice]$c_reset"
+  echo -e " ${c_important}install${c_reset}    Add a new package to the system"
+  echo -e " ${c_important}procedure${c_reset}  Process a procedure on the system"
+  echo -e " ${c_important}alter${c_reset}      Upgrade/Downgrade/Reinstall an existing target on the system"
+  echo -e " ${c_important}uninstall${c_reset}  Remove a package from the system"
+  echo -e " ${c_important}update${c_reset}     Obtain the latest information for a given repository"
+  echo -e " ${c_important}reset${c_reset}      Forcibly reset all local changes made to a given repository"
+  echo
+  standard_help_options
+  echo -e " -${c_important}u${c_reset}, --${c_important}url${c_reset}                Alter url-specific options"
+  echo -e " -${c_important}d${c_reset}, --${c_important}distribution${c_reset}       Alter distribution-specific options"
+  echo -e " -${c_important}t${c_reset}, --${c_important}target${c_reset}             Alter target-specific options"
+  echo -e " -${c_important}c${c_reset}, --${c_important}cache${c_reset}              Local cache directory (i.e: /home/kit/)"
+  echo -e " -${c_important}r${c_reset}, --${c_important}resume${c_reset}             Resume from a previous instance"
+  echo -e " -${c_important}a${c_reset}, --${c_important}action${c_reset}             Specify a specific action, see below"
+  echo -e " -${c_important}s${c_reset}, --${c_important}settings${c_reset}           Change the settings path (i.e: /etc/kit)"
+  echo -e " -${c_important}v${c_reset}, --${c_important}verbose${c_reset}            Display additional information while running"
+  echo -e " -${c_important}b${c_reset}, --${c_important}installation_base${c_reset}  Override the base path of the system"
+  echo -e " +${c_important}c${c_reset}, ++${c_important}cleanup${c_reset}            Do not delete files after execution"
+  echo
+  echo -e "${c_highlight}Url Options:$c_reset"
+  echo -e " ${c_important}git${c_reset}  Entire remote repository url (i.e: git://packages.kevux/)"
+  echo -e " ${c_important}web${c_reset}  Entire remote web url (i.e: https://packages.kevux/)"
+  echo
+  echo -e "${c_highlight}Distribution Options:$c_reset"
+  echo -e " ${c_important}name${c_reset}     Distribution name (i.e: turtle)"
+  echo -e " ${c_important}version${c_reset}  Distribution version (i.e: 0.9)"
+  echo -e " ${c_important}flavor${c_reset}   Distribution flavor (i.e: core)"
+  echo -e " ${c_important}branch${c_reset}   Distribution flavor branch (i.e: master)"
+  echo
+  echo -e "${c_highlight}Target Options:$c_reset"
+  echo -e " ${c_important}type${c_reset}  Specify a type of a target to operate on (i.e: source)"
+  echo -e " ${c_important}what${c_reset}  Specify a group of parts of a target to operate on (i.e: runtime)"
+  echo -e " ${c_important}huh${c_reset}   What part of the target to operate on (i.e: kernel)"
+  echo -e " ${c_important}oh${c_reset}    What sub-part of the target to operate on (i.e: main)"
+  echo
+  echo -e "${c_highlight}Action Options for Alter Command:$c_reset" # TODO: consider making these actions available to the procedure operation
+  echo -e " ${c_important}upgrade${c_reset}    Only install the package if it is an newer version (default)"
+  echo -e " ${c_important}downgrade${c_reset}  Only install the package if it is an older version"
+  echo -e " ${c_important}force${c_reset}      Always install the package"
+  echo
+  echo -e "${c_highlight}Types of Targets:$c_reset"
+  echo -e " ${c_important}package${c_reset}    Something that can be added, altered, or removed"
+  echo -e " ${c_important}procedure${c_reset}  A series of operations to perform"
+  echo
+}

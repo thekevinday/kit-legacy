@@ -1,0 +1,34 @@
+#!/bin/bash
+
+kit_procedure_unset() {
+  unset kit_procedure_error
+  unset kit_procedure
+}
+
+kit_procedure_error() {
+  kit_message_error "While processing the procedure '$c_notice$procedure$c_error', '$c_notice$procedure_what$c_error', '$c_notice$procedure_huh$c_error', '$c_notice$procedure_oh$c_error', '$c_notice$procedure_type$c_error' for the '$c_notice$distribution $distribution_version $distribution_flavor$c_error' distribution."
+
+  if [[ $(standard_is_empty $*) != "" ]] ; then
+    kit_message_error "$*"
+  fi
+
+  if [[ $self == "procedure" ]] ; then
+    cleanup_before_exit
+    exit -3
+  fi
+}
+
+kit_procedure() {
+
+  # procedure variables
+  local procedure=$1
+  local procedure_path=$2
+  local procedure_file=$3
+  local procedure_type=$targets_type
+  local procedure_what=$targets_what
+  local procedure_huh=$targets_huh
+  local procedure_oh=$tarets_oh
+
+  # TODO
+  echo "TODO"
+}

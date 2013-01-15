@@ -1,0 +1,43 @@
+#!/bin/bash
+# This contains all functions shared between the different kit operation scripts.
+
+kit_operation_unset() {
+  unset kit_operation_error
+  unset kit_operation_message
+  unset kit_operation_format
+}
+
+kit_operation_error() {
+  if [[ $(standard_is_empty $operation) != "" ]] ; then
+    kit_message_error_no_log "Operation $c_notice$operation$c_error on line #$c_notice$line_number$c_error from '$c_notice$resume_rule_path$resume_rule_file$c_error':$c_reset\n  ${c_error}$line"
+  fi
+
+  kit_message_error "$*"
+
+  cleanup_before_exit
+  exit -5
+}
+
+kit_operation_warning() {
+  if [[ $(standard_is_empty $operation) != "" ]] ; then
+    kit_message_warning_no_log "Operation $c_notice$operation$c_warning on line #$c_notice$line_number$c_warning from '$c_notice$resume_rule_path$resume_rule_file$c_warning':$c_reset\n  ${c_warning}$line"
+  fi
+
+  kit_message_warning "$*"
+}
+
+kit_operation_message() {
+  kit_log_message message "Now processing line #$line_number of $resume_rule_path$resume_rule_file, $operation operation"
+
+  kit_message_operation "$operation" "$line"
+}
+
+kit_operation_format() {
+  local operation=$1
+
+  format=fss_extended
+
+  if [[ $operation == "shell" ]] ; then
+    format=fss_basic
+  fi
+}

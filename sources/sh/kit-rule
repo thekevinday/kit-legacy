@@ -1,0 +1,298 @@
+#!/bin/bash
+
+kit_rule_unset() {
+  unset kit_rule_read
+  unset kit_rule_read_path
+  unset kit_rule_error
+  unset kit_rule_repository_load_premade
+  unset kit_rule
+}
+
+kit_rule_read() {
+  kit_fss_read $system_cache_path$rule_path_base$rule_path_rule$rule_file "$1" "$2" "$3" "$4" "$5"
+}
+
+kit_rule_read_path() {
+  kit_fss_read_path $system_cache_path$rule_path_base$rule_path_rule$rule_file "$1" "$2" "$3" "$4" "$5"
+}
+
+kit_rule_error() {
+  if [[ $parent == "package" ]] ; then
+    kit_package_error
+  elif [[ $parent == "procedure" ]] ; then
+    kit_procedure_error
+  fi
+
+  if [[ $operation != "" ]] ; then
+    kit_message_error "While processing rule line '$c_notice$line_number$c_error', operation '$c_notice$operation$c_error)."
+  fi
+
+  if [[ $(standard_is_empty $*) != "" ]] ; then
+    kit_message_error "$*"
+  fi
+
+  if [[ $self == "rule" ]] ; then
+    cleanup_before_exit
+    exit -4
+  fi
+}
+
+kit_rule_repository_load_premade() {
+  local previous_path=$PWD
+
+  if [[ ! -d $premade_path ]] ; then
+    kit_message_shell "git clone $remote_depth -q -n -o $premade_branch $rule_url$rule_path_base$rule_path_premade $premade_path"
+    git clone $remote_depth -q -n -o $premade_branch $rule_url$rule_path_base$rule_path_premade $premade_path
+
+    if [[ $? -ne 0 || ! -d $premade_path ]] ; then
+      kit_rule_error "Failed to clone '$c_notice$rule_path_base$rule_path_premade$c_error' with branch of '$c_notice$premade_branch$c_error' to '$c_notice$premade_path$c_error'"
+    fi
+
+    kit_message_shell "cd $premade_path"
+    cd $premade_path
+
+    if [[ $? -ne 0 ]] ; then
+      kit_rule_error "Failed to change to the directory '$c_notice$premade_path$c_error'"
+    fi
+
+    kit_message_shell "git checkout"
+    git checkout
+
+    if [[ $premade_revision != "HEAD" ]] ; then
+      kit_message_shell "git reset --hard --quiet $premade_revision"
+      git reset --hard --quiet $premade_revision
+
+      if [[ $? -ne 0 ]] ; then
+        kit_package_error "Failed to reset premade repository at '$c_notice$premade_path$c_error' to '$c_notice$premade_revision$c_error' for package '$c_notice$package$c_error'"
+      fi
+    fi
+  fi
+
+  kit_message_shell "cd $previous_path"
+  cd $previous_path
+
+  if [[ $? -ne 0 ]] ; then
+    kit_rule_error "Failed to change to the directory '$c_notice$previous_path$c_error'"
+  fi
+}
+
+kit_rule() {
+
+  # passed variables
+  local rule=$1
+  local rule_what=$2
+  local rule_huh=$3
+  local rule_oh=$4
+  local rule_type=$5
+
+  # rule variables
+  local about_from=
+  local about_copyright=
+  local about_flags="$about_flags "
+
+  # permission variables
+  local permission_group_type=
+  local permission_group_name=
+  local permission_mode_directory=none
+  local permission_mode_file=none
+  local permission_attribute_directory=none
+  local permission_attribute_file=none
+  local permission_access_directory=none
+  local permission_access_file=none
+
+  # control variables
+  local self=rule
+  local operation=
+  local line_number=
+  local line=
+  local data=
+  local requires=
+
+  local path_previous=$PWD
+  local path_current=$PWD
+  local rule_url=$6
+  local rule_path_base=$7
+  local rule_path_rule=$8
+  local rule_path_premade=$9
+  local rule_file=$rule_oh.rule
+
+  local premade_path=
+
+  local strategy_path=$resume_path
+  local strategy_file=$kit_operation-$rule-$rule_what-$rule_huh-$rule_oh.variables
+
+  local resume_file=$kit_operation-$rule-$rule_what-$rule_huh-$rule_oh.resume
+  local resume_rule_path=$resume_path
+  local resume_rule_file=$kit_operation-$rule-$rule_what-$rule_huh-$rule_oh.rule
+
+  # dynamic variable management
+  local dynamic_optional=
+  local dynamic_required=
+
+  # strategy data management
+  local strategy_data=
+  local strategy_length=
+  local strategy_names=
+
+  # strategy data management
+  local inline_data=
+  local inline_length=
+  local inline_names=
+
+  # other variables
+  local c=
+  local t=
+  local total=
+  local temporary=
+
+
+  if [[ ! -f $system_cache_path$rule_path_base$rule_path_rule$rule_file ]] ; then
+    kit_rule_error "Failed to find the rules file '$c_notice$system_cache_path$rule_path_base$rule_path_rule$rule_file$c_error'"
+  fi
+
+
+  kit_log_section
+  kit_log_message message "now ${kit_operation}ing '$rule' '$rule_what' '$rule_huh' '$rule_oh' from $rule_type"
+
+
+  # ensure that the rule resume file exists
+  if [[ ! -f $resume_path$resume_file || $resume_execution != "yes" ]] ; then
+    echo -e "# fss-0001\n" > $resume_path$resume_file
+  fi
+
+
+  # about:
+  data=$about_flags
+  kit_rule_read about_from about from 0
+  kit_rule_read about_copyright about copyright 0
+  kit_rule_read about_flags about flags 0
+  about_flags="$about_flags$data "
+  data=
+
+  if [[ $(echo "$about_flags" | grep -s -o '\<premade\>') != "" ]] ; then
+    premade_path="$system_cache_path$rule_path_base$rule_path_premade"
+    kit_rule_repository_load_premade
+  fi
+
+
+  # provides:
+  kit_rule_read provides provides
+
+
+  # requires:
+  kit_rule_read requires requires
+
+
+  # generate and preprocess the strategy list
+  kit_dynamic_strategy_prepare
+
+
+  if [[ ! -f $resume_rule_path$resume_rule_file ]] ; then
+    resume_execution=
+  fi
+
+  # perform resume if requested
+  if [[ $resume_execution == "yes" ]] ; then
+    kit_log_message message "now resuming '$resume_rule_path$resume_rule_file' using '$resume_path$resume_file'"
+
+    # load resume line
+    c=$(fss_extended_read -n line -c 0 -s 0 $resume_path$resume_file)
+
+    if [[ $(kit_fss_has_error) != "" ]] ; then
+      kit_rule_error "Failed to read '$c_notice$resume_path$resume_file$c_error', cannot resume"
+    fi
+
+    if [[ $c -ge 0 ]] ; then
+      let line_number=$c+1
+
+      # process all custom operations that provide resume functions
+      kit_operation_mode_resume
+      kit_operation_group_resume
+      kit_operation_attribute_resume
+      kit_operation_access_resume
+
+      kit_operation_path_resume
+      kit_operation_version_resume
+
+      kit_dynamic_inline_resume
+    else
+      resume_execution=
+    fi
+  fi
+
+  if [[ $resume_execution != "yes" ]] ; then
+    # $rule_type:
+    if [[ ! $(fss_basic_list_read $system_cache_path$rule_path_base$rule_path_rule$rule_file -t -n $rule_type) -gt 0 ]] ; then
+      kit_rule_error "There is no target type of '$c_notice$rule_type$c_error' defined in the file '$c_notice$system_cache_path$rule_path_base$rule_path_rule$rule_file$c_error'"
+    fi
+
+    kit_message_shell "fss_basic_list_read $system_cache_path$rule_path_base$rule_path_rule$rule_file -n $rule_type > $resume_rule_path$resume_rule_file"
+    fss_basic_list_read $system_cache_path$rule_path_base$rule_path_rule$rule_file -n $rule_type > $resume_rule_path$resume_rule_file
+
+    if [[ $(kit_fss_has_error) != "" ]] ; then
+      kit_rule_error "Failed to generate '$c_notice$resume_rule_path$resume_rule_file$c_error' from '$c_notice$rule_type$c_error' of the file '$c_notice$system_cache_path$rule_path_base$rule_path_rule$rule_file$c_error'"
+    fi
+
+    kit_dynamic_required_load_names "$resume_rule_path" "$resume_rule_file"
+    kit_dynamic_optional_load_names "$resume_rule_path" "$resume_rule_file"
+
+    kit_dynamic_process required "$resume_rule_path" "$resume_rule_file" "$parent-$rule"
+    kit_dynamic_process optional "$resume_rule_path" "$resume_rule_file" "$parent-$rule"
+
+    let c=0
+  fi
+
+  # begin processing the generated rules file
+  total=$(fss_basic_read -t $resume_rule_path$resume_rule_file)
+
+  if [[ $(kit_fss_has_error) != "" || $(standard_is_empty $total) == "" ]] ; then
+    kit_rule_error "Failed to load the generated rules file '$c_notice$resume_rule_path$resume_rule_file$c_error'"
+  fi
+
+  while [[ $c -lt $total ]] ; do
+    operation=$(fss_basic_read -c $c -o $resume_rule_path$resume_rule_file)
+    line=$(fss_basic_read -c $c $resume_rule_path$resume_rule_file)
+    let line_number=$c+1
+
+    sed -i -e '/^[[:space:]]*line\>/d' $resume_path$resume_file
+    temporary=$(fss_extended_write -s -p "$c")
+    echo "$(fss_extended_write -s -o line)$temporary" >> $resume_path$resume_file
+
+    kit_dynamic_process inline "$parent-$rule"
+
+    case $operation in
+      "shell") kit_operation_shell ;;
+      "version") kit_operation_version ;;
+      "attribute") kit_operation_attribute ;;
+      "mode") kit_operation_mode ;;
+      "group") kit_operation_group ;;
+      "access") kit_operation_access ;;
+      "directory" | "directory_dereference") kit_operation_directory ;;
+      "file" | "file_dereference" | "file_safe" | "file_new" | "file_new_dereference" | "executable" | "executable_dereference" | "executable_safe") kit_operation_file ;;
+      "library") kit_operation_library ;;
+      "strip") kit_operation_strip ;;
+      "path") kit_operation_path ;;
+      *) kit_message_warning "No such operation called '$c_notice$operation$c_reset'"
+    esac
+
+    let c++
+  done
+
+
+  # do cleanup
+
+  # always remove resume file on proper exit
+  if [[ -f $resume_path$resume_file ]] ; then
+    rm -f $resume_path$resume_file
+  fi
+
+  if [[ $do_cleanup == "y" ]] ; then
+    if [[ -f $strategy_path$strategy_file ]] ; then
+      rm -f $strategy_path$strategy_file
+    fi
+
+    if [[ -f $resume_rule_path$resume_rule_file ]] ; then
+      rm -f $resume_rule_path$resume_rule_file
+    fi
+  fi
+}
