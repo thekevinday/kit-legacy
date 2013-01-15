@@ -432,7 +432,7 @@ cleanup_main() {
 
 
 OLD_PATH=$PATH
-# PATH=_SCRIPT_LIBRARY_PREFIX_:$PATH
+# PATH=_SCRIPT_LIBRARY_PREFIX_:_SCRIPT_LIBRARY2_PREFIX_:$PATH
 
 source $(type -p turtle_kevux_scripts-standard)
 source $(type -p kit-fss)
