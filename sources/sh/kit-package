@@ -637,6 +637,7 @@ kit_package() {
   local p1=
   local p2=
   local p3=
+  local processed=
 
 
   kit_log_section
@@ -795,6 +796,7 @@ kit_package() {
     return
   fi
 
+  processed=
 
   # operate on individual package parts (what + huh + oh)
   for w in $package_what ; do
@@ -806,9 +808,12 @@ kit_package() {
       p2=$(fss_extended_write -p -s "$h" | sed -e 's|[[:space:]]*$||')
       p3=$(fss_extended_write -p -s "$o" | sed -e 's|[[:space:]]*$||')
 
-      if [[ ! -f "$resume_path$resume_file" || $(fss_basic_read -n processed $resume_path$resume_file | grep -s -o "^[[:space:]]*$p1[[:space:]]*$p2[[:space:]]*$p3[[:space:]]*$") == "" ]] ; then
-        kit_package_individual $w $h $o
-        echo "$(fss_extended_write -s processed)$p1 $p2 $p3" >> "$resume_path$resume_file"
+      if [[ $(echo $processed | grep -s -i "\<$o\>") == "" ]] ; then
+        if [[ ! -f "$resume_path$resume_file" || $(fss_basic_read -n processed $resume_path$resume_file | grep -s -o "^[[:space:]]*$p1[[:space:]]*$p2[[:space:]]*$p3[[:space:]]*$") == "" ]] ; then
+          kit_package_individual $w $h $o
+          echo "$(fss_extended_write -s processed)$p1 $p2 $p3" >> "$resume_path$resume_file"
+          processed="${processed}$o "
+        fi
       fi
 
       let c++
