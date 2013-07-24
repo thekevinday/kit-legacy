@@ -1,0 +1,482 @@
+#!/bin/bash
+# Programmer: Kevin Day
+# License: lgplv2
+# See: https://www.kevux.org/ or https://primary.kevux/
+# Dependencies: bash uniq sort sed grep fss_basic_read fss_extended_read fss_basic_list_read fss_basic_write fss_extended_write fss_basic_list_write fss_return_code rm rmdir cp ln strip chown chmod chgrp chattr chacl find git touch mknod gcc as file line
+
+# TODO: for security purposes, when doing compilation, add a variable that defines a users to su as during compilation of sources.
+#       said user account must have access to all appropriate cache paths.
+#       consider creating this as an operation called 'safe' (a variant of the 'shell' command), such as: safe ./configure
+
+main() {
+  public_name="Kevux Package Manager"
+  system_name=kit
+  version=0.4.x
+
+  # control variables
+  local do_help=
+  local do_cleanup=y
+  local kit_operation=
+  local path_original=$PWD
+  local search_target= # FIXME: what was this for again?
+  local action=
+  local verbose=
+  local self=global
+  local parent=
+
+  # global variable management
+  local reserved_variables=
+  local reserved=
+
+  # dynamic variable management
+  local dynamic_variables=
+  local dynamic_data=
+  local dynamic_total=
+  local dynamic=
+
+  # permission variable management
+  local permission_variables=
+  local permission_data=
+  local permission_total=
+  local permission=
+
+  # path & system variables
+  local system_settings_path=/etc/kit/
+  local system_data_path=/share/kit/
+  local system_cache_path=/home/kit/
+  local system_versions_path=${system_settings_path}versions/
+  local system_settings_file=system.settings
+  local system_permissions_file=system.permissions
+  local system_environment_file=environment.settings
+  local system_settings_name=main
+  local installation_base=
+
+  # remote variables
+  local remote_url_web=https://packages.kevux/
+  local remote_url_git=git://packages.kevux:3/
+  local remote_branch=master
+  local remote_tag=
+  local remote_depth="--depth 1"
+
+  # distribution variables
+  local distribution=turtle
+  local distribution_version=0.9
+  local distribution_flavor=core
+  local distribution_path=distribution/${distribution}/${distribution_version}/
+  local distribution_base=$system_cache_path$distribution_path$distribution_flavor/
+  local distribution_settings_path=${distribution_base}settings/
+  local distribution_settings_file=system.settings
+  local distribution_environment_file=environment.settings
+  local distribution_permissions_file=system.permissions
+
+  # targets variables
+  local targets=
+  local targets_path=packages/
+  local targets_extension=package
+  local targets_type=source
+  local targets_what=
+  local targets_huh=
+  local targets_oh=
+
+  # log variables
+  local logs_path=${system_cache_path}logs/
+  local logs_file=main.log
+
+  # resume variables
+  local resume_path=${system_cache_path}resume/
+  local resume_execution=
+
+  # other variables
+  local strip=yes
+  local i=
+
+
+  while [[ $count -lt $main_size ]] ; do
+    i=${main_input[$count]}
+
+    if [[ $grab_next == "" ]] ; then
+      if [[ $i == "-h" || $i == "--help" ]] ; then
+        do_help=y
+      elif [[ $i == "+n" || $i == "++no_color" ]] ; then
+        do_color=none
+      elif [[ $i == "+l" || $i == "++light" ]] ; then
+        do_color=light
+      elif [[ $i == "+v" || $i == "++version" ]] ; then
+        do_help=v
+      elif [[ $i == "-v" || $i == "--verbose" ]] ; then
+        verbose=y
+      elif [[ $i == "-u" || $i == "--url" ]] ; then
+        grab_next=url
+      elif [[ $i == "-d" || $i == "--distribution" ]] ; then
+        grab_next=distribution
+      elif [[ $i == "-t" || $i == "--target" ]] ; then
+        grab_next=target
+      elif [[ $i == "-c" || $i == "--cache" ]] ; then
+        grab_next=cache
+      elif [[ $i == "-r" || $i == "--resume" ]] ; then
+        resume_execution=yes
+      elif [[ $i == "-s" || $i == "--settings" ]] ; then
+        grab_next=settings
+      elif [[ $i == "-a" || $i == "--action" ]] ; then
+        grab_next=action
+      elif [[ $i == "-b" || $i == "--installation_base" ]] ; then
+        grab_next=installation_base
+      elif [[ $i == "+c" || $i == "++cleanup" ]] ; then
+        do_cleanup=n
+      elif [[ $kit_operation == "" ]] ; then
+        kit_operation="$i"
+      else
+        targets="$targets$i "
+      fi
+    else
+      if [[ $grab_next == "url" ]] ; then
+        if [[ $i == "git" || $i == "web" ]] ; then
+          grab_next="url $i"
+        else
+          kit_message_error_no_log "Unrecognized option '${c_notice}$i${c_error}' for the ${c_notice}url${c_error} parameter."
+          cleanup_before_exit
+          exit -1
+        fi
+
+        let count=$count+1
+        continue
+      elif [[ $grab_next == "url git" ]] ; then
+        remote_url_git="$i"
+      elif [[ $grab_next == "url web" ]] ; then
+        remote_url_web="$i"
+      elif [[ $grab_next == "distribution" ]] ; then
+        if [[ $i == "name" || $i == "version" || $i == "flavor" || $i == "branch" ]] ; then
+          grab_next="distribution $i"
+        else
+          kit_message_error_no_log "Unrecognized option '${c_notice}$i${c_error}' for the ${c_notice}distribution${c_error} parameter."
+          cleanup_before_exit
+          exit -1
+        fi
+
+        let count++
+        continue
+      elif [[ $grab_next == "distribution name" ]] ; then
+        distribution="$i"
+        distribution_path=distribution/${distribution}/${distribution_version}/
+        distribution_base=$system_cache_path$distribution_path$distribution_flavor/
+        distribution_settings_path=${distribution_base}settings/
+      elif [[ $grab_next == "distribution version" ]] ; then
+        distribution_version="$i"
+        distribution_path=distribution/${distribution}/${distribution_version}/
+        distribution_base=$system_cache_path$distribution_path$distribution_flavor/
+        distribution_settings_path=${distribution_base}settings/
+      elif [[ $grab_next == "distribution flavor" ]] ; then
+        distribution_flavor="$i"
+        distribution_base=$system_cache_path$distribution_path$distribution_flavor/
+        distribution_settings_path=${distribution_base}settings/
+      elif [[ $grab_next == "distribution branch" ]] ; then
+        remote_branch="$i"
+      elif [[ $grab_next == "target" ]] ; then
+        if [[ $i == "type" || $i == "what" || $i == "huh" || $i == "oh" ]] ; then
+          grab_next="target $i"
+        else
+          kit_message_error_no_log "Unrecognized option '${c_notice}$i${c_error}' for the ${c_notice}package${c_error} parameter."
+          cleanup_before_exit
+          exit -1
+        fi
+
+        let count=$count+1
+        continue
+      elif [[ $grab_next == "target type" ]] ; then
+        targets_type="$i"
+      elif [[ $grab_next == "target what" ]] ; then
+        targets_what="$targets_what$i "
+        multiple="yes"
+      elif [[ $grab_next == "target huh" ]] ; then
+        targets_huh="$targets_huh$i "
+      elif [[ $grab_next == "target oh" ]] ; then
+        if [[ $(kit_core_is_empty $targets_oh) == "" ]] ; then
+          targets_oh="$i"
+        else
+          kit_message_warning_no_log "For simplicity purposes, the current design only allows one 'oh' to be specified, the additional oh '${c_notice}$i${c_error}' is being ignored."
+          sleep 6
+        fi
+      elif [[ $grab_next == "cache" ]] ; then
+        system_cache_path=$(echo "$i" | sed -e 's|/*$|/|')
+        resume_path="${system_cache_path}resume/"
+        logs="${system_cache_path}logs/"
+      elif [[ $grab_next == "settings" ]] ; then
+        system_settings_path=$(echo "$i" | sed -e 's|/*$|/|')
+        system_versions_path="${system_settings_path}versions/"
+      elif [[ $grab_next == "action" ]] ; then
+        action="$i"
+      elif [[ $grab_next == "installation_base" ]] ; then
+        installation_base=$(echo "$i" | sed -e 's|/*$|/|')
+      fi
+
+      grab_next=
+    fi
+
+    let count++
+  done
+
+
+  kit_core_handle_colors
+
+
+  if [[ $do_help != "" ]] ; then
+    if [[ $do_help == "v" ]] ; then
+      echo $the_version
+    else
+      kit_message_help
+    fi
+
+    return
+  fi
+
+
+  if [[ $(kit_core_is_empty $kit_operation ) == "" ]] ; then
+    kit_message_help
+    return
+  fi
+
+  if [[ $(kit_core_is_empty $targets_what ) == "" ]] ; then
+    targets_what=runtime
+  fi
+
+  if [[ $(kit_core_is_empty $distribution_base ) == "" ]] ; then
+    distribution_base=$system_cache_path$distribution_path$distribution_flavor/
+  fi
+
+  if [[ ! -d $logs_path ]] ; then
+    mkdir -p $logs_path
+  fi
+
+  if [[ ! -d $system_cache_path$distribution_path ]] ; then
+    mkdir -p $system_cache_path$distribution_path
+  fi
+
+  if [[ ! -d $resume_path ]] ; then
+    mkdir -p $resume_path
+  fi
+
+
+  # TODO: come up with a cleanup function that cleans & deletes data, such as distribution repositories, logs, or other cached/temporary data
+  # TODO: come up with a list of all of the other possible options, like revert, and figure out if and how they are to be implemented
+  case $kit_operation in
+    "distribution")
+      # TODO: execution a series of procedures and packages accodring to a given distribution
+      kit_message_warning_no_log "'$c_notice$kit_operation$c_warning' is currently not implemented."
+      cleanup_before_exit
+      exit -1
+      ;;
+    "procedure")
+      targets_path=procedures/
+      targets_extension=procedure
+      ;;
+    "install") ;;
+    "alter")
+      if [[ $action == "" ]] ; then
+        action=upgrade
+      elif [[ $action != "upgrade" && $action != "downgrade" && $action != "force" ]] ; then
+        kit_message_error_no_log "The action '$c_notice$action$c_error' is not valid for the operation '$c_notice$kit_operation$c_error'."
+        cleanup_before_exit
+        exit -1
+      fi
+      ;;
+    "uninstall")
+      kit_message_warning_no_log "'$c_notice$kit_operation$c_warning' is currently not implemented."
+      cleanup_before_exit
+      exit -1
+      ;;
+    "update") ;;
+    "reset") ;;
+    #"revert") ;; # TODO: figure out if it is possible and practical to perform revert operations
+    *)
+      kit_message_error_no_log "'$c_notice$kit_operation$c_error' is not a valid operation."
+      cleanup_before_exit
+      exit -1
+    ;;
+  esac
+
+  if [[ $kit_operation == "install" || $kit_operation == "alter" || $kit_operation == "uninstall" ]] ; then
+    if [[ $targets == "" ]] ; then
+      kit_message_error_no_log "$kit_operation ${c_notice}what${c_error}? Please specify a package."
+      cleanup_before_exit
+      exit -1
+    fi
+  fi
+
+  if [[ $(echo "$url" | grep -s -o '^http://') != "" || $(echo "$url" | grep -s -o '^https://') != "" ]] ; then
+    remote_depth=
+  fi
+
+
+  kit_reserved_register
+  kit_distribution_load
+
+
+  kit_log_section
+
+  if [[ $targets != "" ]] ; then
+    kit_log_message message "Processing the targets: $targets"
+  fi
+
+
+  # load specific settings
+  if [[ -f $system_settings ]] ; then
+    # load optional 'strip' setting
+    if [[ $(fss_basic_list_read $system_settings_path$system_settings_file -t -n $system_settings_name) -gt 0 ]] ; then
+      if [[ $(fss_basic_list_read $system_settings_path$system_settings_file -n $system_settings_name | fss_basic_read -t -n strip) -gt 0 ]] ; then
+        kit_log_message load global "strip" "fss_basic_list_read $system_settings_path$system_settings_file -c 0 -n $system_settings_name | fss_basic_read -c 0 -n strip"
+        strip=$(fss_basic_list_read $system_settings_path$system_settings_file -c 0 -n $system_settings_name | fss_basic_read -c 0 -n strip)
+
+        if [[ $strip != "yes" && $strip != "explicit" && $strip != "implicit" && $strip != "no" ]] ; then
+          kit_message_warning_no_log "The optional strip setting '$c_notice$strip$c_warning', defined in '$c_notice$system_settings_name$c_warning' of '$c_notice$system_settings_path$system_settings_file$c_warning' is invalid and should be either yes, explicit, implicit, or no, now defaulting to yes."
+          strip=yes
+          sleep 6
+        fi
+      fi
+    fi
+
+    # attempt to load installation base path if it was not specified by a parameter
+    if [[ $(kit_core_is_empty $installation_base) == "" ]] ; then
+      if [[ $(fss_basic_list_read $system_settings_path$system_settings_file -t -n installation_base) -gt 0 ]] ; then
+        if [[ $(fss_basic_list_read $system_settings_path$system_settings_file -n installation_base | fss_extended_read -t -n installation_base) -gt 0 ]] ; then
+          kit_log_message load global "installation_base" "fss_basic_list_read $system_settings_path$system_settings_file -c 0 -n installation_base | fss_extended_read -c 0 -s 0 -n installation_base"
+          installation_base=$(fss_basic_list_read $system_settings_path$system_settings_file -c 0 -n installation_base | fss_extended_read -c 0 -s 0 -n installation_base)
+        fi
+      fi
+    fi
+  fi
+
+
+  # TODO: if "what", "huh", and "oh" options are present, only allow one target to be specified OR find a way to allow multiple targets at the same time
+  # process targets
+  for i in $targets ; do
+    if [[ -f $distribution_base$targets_path$i.$targets_extension || $kit_operation == "reset" || $kit_operation == "update" ]] ; then
+      if [[ $targets_extension == "package" ]] ; then
+        kit_package "$i" "$distribution_base$targets_path" "$i.$targets_extension"
+      elif [[ $targets_extension == "procedure" ]] ; then
+        kit_procedure "$i" "$distribution_base$targets_path" "$i.$targets_extension"
+      fi
+    else
+      kit_message_warning_no_log "Could not find target '$c_notice$i$c_warning' at the path '$c_notice$distribution_base$targets_path$i.$targets_extension${c_warning}'"
+    fi
+  done
+
+
+  cleanup_before_exit
+}
+
+cleanup_before_exit() {
+  local i=
+  cd $path_original
+
+  if [[ $do_cleanup != "y" ]] ; then
+    return
+  fi
+
+  if [[ $(kit_core_is_empty $distribution_base) != "" ]] ; then
+    if [[ -d $distribution_base$targets_path ]] ; then
+      rmdir --ignore-fail-on-non-empty $distribution_base$targets_path
+    fi
+
+    if [[ -d $distribution_base ]] ; then
+      rmdir --ignore-fail-on-non-empty $distribution_base
+    fi
+  fi
+
+  if [[ $(kit_core_is_empty $distribution) != "" ]] ; then
+    if [[ $(kit_core_is_empty $distribution_version) != "" ]] ; then
+      if [[ -d ${system_cache_path}distribution/${distribution}/${distribution_version}/ ]] ; then
+        rmdir --ignore-fail-on-non-empty ${system_cache_path}distribution/${distribution}/${distribution_version}/
+      fi
+    fi
+
+    if [[ -d ${system_cache_path}distribution/${distribution}/ ]] ; then
+      rmdir --ignore-fail-on-non-empty ${system_cache_path}distribution/${distribution}/
+    fi
+  fi
+
+  if [[ -d ${system_cache_path}distribution/ ]] ; then
+    rmdir --ignore-fail-on-non-empty ${system_cache_path}distribution/
+  fi
+}
+
+cleanup_main() {
+  kit_core_unset
+
+  kit_fss_unset
+  kit_message_unset
+  kit_log_unset
+  kit_reserved_unset
+  kit_dynamic_unset
+  kit_permission_unset
+  kit_distribution_unset
+  kit_package_unset
+  kit_procedure_unset
+  kit_rule_unset
+
+  kit_operation_unset
+  kit_operation_access_unset
+  kit_operation_attribute_unset
+  kit_operation_directory_unset
+  kit_operation_file_unset
+  kit_operation_group_unset
+  kit_operation_library_unset
+  kit_operation_mode_unset
+  kit_operation_path_unset
+  kit_operation_shell_unset
+  kit_operation_strip_unset
+  kit_operation_version_unset
+  kit_operation_if_unset
+
+  unset cleanup_before_exit
+  unset main
+}
+
+
+OLD_PATH=$PATH
+# PATH=_SCRIPT_LIBRARY_PREFIX_:$PATH
+
+source $(type -p kit-core)
+source $(type -p kit-fss)
+source $(type -p kit-message)
+source $(type -p kit-log)
+source $(type -p kit-reserved)
+source $(type -p kit-dynamic)
+source $(type -p kit-permission)
+source $(type -p kit-distribution)
+source $(type -p kit-package)
+source $(type -p kit-procedure)
+source $(type -p kit-operation)
+source $(type -p kit-operation-access)
+source $(type -p kit-operation-attribute)
+source $(type -p kit-operation-directory)
+source $(type -p kit-operation-file)
+source $(type -p kit-operation-group)
+source $(type -p kit-operation-library)
+source $(type -p kit-operation-mode)
+source $(type -p kit-operation-path)
+source $(type -p kit-operation-shell)
+source $(type -p kit-operation-strip)
+source $(type -p kit-operation-version)
+source $(type -p kit-operation-if)
+source $(type -p kit-rule)
+PATH=$OLD_PATH
+unset OLD_PATH
+
+# populate main_input variable
+main_input=
+main_size=$#
+c1=0
+c2=
+
+while [[ $c1 -lt $main_size ]] ; do
+  let c2=$c1+1
+  main_input[$c1]=${!c2}
+  let c1=$c1+1
+done
+
+unset c1 c2
+
+# execute the program
+kit_core_main_execute=main
+kit_core_main
+cleanup_main

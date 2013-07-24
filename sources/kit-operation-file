@@ -1,0 +1,156 @@
+#!/bin/bash
+# There are different variants of the file operation: file, file_dereference, file_safe, file_new, file_new_dereference, executable, executable_dereference, and executable_safe.
+#
+# Operation 'file':
+# - Installs a file without any special considerations.
+# - This will install symbolic links as symbolic links.
+#
+# Operation 'file_new':
+# - Identical to operation file, except files are only copied if a file does not already exist at the destination path.
+#
+# Operation 'file_dereference':
+# - Installs a file, but dereferences all symbolic links, so symbolic links do not get copied and instead the actual files get copied.
+#
+# Operation 'file_new_dereference':
+# - Identical to operation file_dereference, except files are only copied if a file does not already exist at the destination path.
+#
+# Operation 'file_safe':
+# - Installs a file, but a backup is made.
+# - This must and only should be used for files that are being used by the installer.
+# - This prevents the installer from crashing when the installer or files used by the installer get replaced during the runtime of the installer.
+#
+# Operations 'executable', 'executable_dereference', 'executable_safe':
+# - These are identical to the file equivalents, except they conditionally get stripped.
+#
+# Arguments:
+#   name:
+#   - the name of the file to install.
+#   - this is the name the file is installed as.
+#   destination:
+#   - the directory name in which the file will be installed to.
+#   source (conditionally optional):
+#   - if omitted, then the file is created and not copied.
+#   - can only be ommitted for file operation.
+#   - this is either the source directory or source file.
+#   - if it is a directory, then the file name is derived from the name argument above.
+
+kit_operation_file_unset() {
+  unset kit_operation_file
+}
+
+kit_operation_file() {
+  local name=
+  local destination=
+  local source=
+  local library_source=
+  local library_medium=
+  local filepath=
+  local dereference=
+
+  # operation controls
+  local parent=$parent-$self
+  local self=operation
+
+  kit_operation_message
+
+  name=$(echo object $line | fss_extended_read -c 0 -s 0)
+  destination=$(echo object $line | fss_extended_read -c 0 -s 1)
+  source=$(echo object $line | fss_extended_read -c 0 -s 2)
+
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
+    kit_operation_error "Missing file name"
+  fi
+
+  if [[ $(kit_core_is_empty $destination) == "" ]] ; then
+    kit_operation_error "Missing destination path"
+  fi
+
+  destination=$(echo $destination | sed -e 's|/*$|/|' -e 's|/*$|/|')
+
+  if [[ ! -d $destination ]] ; then
+    kit_operation_error "Destination path '$c_notice$destination$c_error' is not a valid directory"
+  fi
+
+  if [[ $operation == "file_dereference" || $operation == "executable_dereference" ]] ; then
+    dereference="dereference"
+  fi
+
+  if [[ $(kit_core_is_empty $source) == "" ]] ; then
+    if [[ $operation == "file_dereference" || $operation == "file_new_dereference" || $operation == "file_safe" || $operation == "executable" || $operation == "executable_dereference" || $operation == "executable_safe" ]] ; then
+      kit_operation_error "Cannot use the '$c_notice$operation$c_error' operation without specifying a source file"
+    fi
+
+    if [[ ! -f $installation_base$destination$name ]] ; then
+      kit_message_shell "touch $installation_base$destination$name"
+      touch $installation_base$destination$name
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to create the file '$c_notice$installation_base$destination$name$c_error'"
+      fi
+
+      kit_operation_attribute_apply file "$installation_base$destination$name" $dereference
+      kit_operation_group_apply "$installation_base$destination$name" $dereference
+      kit_operation_mode_apply file "$installation_base$destination$name" $dereference
+      #kit_operation_access_apply file "$installation_base$destination$name" $dereference
+    fi
+  else
+    if [[ -d $source ]] ; then
+      source=$(echo $source | sed -e 's|/*$|/|' -e 's|/*$|/|')
+      filepath=$source$name
+    else
+      filepath=$source
+    fi
+
+    if [[ ! -f $filepath ]] ; then
+      kit_operation_error "Source path '$c_notice$filepath$c_error' is not a valid filepath"
+    fi
+
+    # do nothing if file already exists for *_new commands
+    if [[ $operation == "file_new" || $operation == "file_new_dereference" ]] ; then
+      if [[ -f "$installation_base$destination$name" ]] ; then
+        return
+      fi
+    fi
+
+    if [[ $operation == "executable" || $operation == "executable_dereference" || $operation == "executable_safe" ]] ; then
+      kit_operation_strip_apply executable "$filepath"
+    fi
+
+    kit_operation_attribute_apply file "$installation_base$filepath" $dereference
+    kit_operation_group_apply "$installation_base$filepath" $dereference
+    kit_operation_mode_apply file "$installation_base$filepath" $dereference
+    #kit_operation_access_apply both "$installation_base$filepath" $dereference
+
+    if [[ $operation == "file" || $operation == "file_new" || $operation == "executable" ]] ; then
+      kit_message_shell "cp -fa $filepath $installation_base$destination$name"
+      cp -fa $filepath $installation_base$destination$name
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to install the file '$c_notice$filepath$c_error' to '$c_notice$installation_base$destination$name$c_error'"
+      fi
+    elif [[ $operation == "file_dereference" || $operation == "file_new_dereference" || $operation == "executable_dereference" ]] ; then
+      kit_message_shell "cp -faLf $filepath $installation_base$destination$name"
+      cp -faLf $filepath $installation_base$destination$name
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to install the file '$c_notice$filepath$c_error' to '$c_notice$installation_base$destination$name$c_error'"
+      fi
+    elif [[ $operation == "file_safe" || $operation == "executable_safe" ]] ; then
+      kit_message_shell "cp -fa --backup=simple --suffix=~ $filepath $installation_base$destination$name"
+      cp -fa --backup=simple --suffix=~ $filepath $installation_base$destination$name
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to install the file '$c_notice$filepath$c_error' to '$c_notice$installation_base$destination$name$c_error'"
+      fi
+
+      if [[ -f $installation_base$part2$part1${part3}~ ]] ; then
+        kit_message_shell "rm -f $installation_base$destination$name~"
+        rm -f $installation_base$destination$name~
+
+        if [[ $? -ne 0 ]] ; then
+          kit_operation_warning "Failed to remove the backup file '$c_notice$installation_base$destination$name~$c_error'"
+        fi
+      fi
+    fi
+  fi
+}

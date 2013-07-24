@@ -1,0 +1,169 @@
+#!/bin/bash
+# the mode operation saves the mode variable settings so that the file mode may be applied in subsequent file, directory, or library operations.
+# with this operation, file and directory permissions are store in separate variables and only get applied for their appropriate type.
+#
+# arguments
+#   type:
+#     - this designates what category the permission belongs under.
+#     - can be one of the following: file, directory, both.
+#   name:
+#     - this is name used to represent the permission.
+#     - this is a reference to the actual permissions in the appropriate settings.permissions file either on the local system settings or in the distribution settings.
+
+kit_operation_mode_unset() {
+  unset kit_operation_mode_apply
+  unset kit_operation_mode_resume
+  unset kit_operation_mode
+}
+
+kit_operation_mode_apply() {
+  local type=$1
+  local filepath=$2
+  local recursive=$3
+  local permission=
+  local filepaths=
+  local i=
+
+  if [[ $type == "file" ]] ; then
+    if [[ $permission_mode_file == "none" ]] ; then
+      return
+    fi
+
+    kit_permission_get mode_file "$permission_mode_file"
+
+    if [[ $(kit_core_is_empty $permission) == "" ]] ; then
+      return
+    fi
+
+    if [[ $(kit_core_is_empty $recursive) == "" ]] ; then
+      kit_message_shell "chmod $permission $filepath"
+      chmod $permission $filepath
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to set mode '$c_notice$permission$c_error' on the file '$c_notice$filepath$c_error'"
+      fi
+    else
+      kit_message_shell "chmod -R $permission $filepath"
+      chmod -R $permission $filepath
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to set mode '$c_notice$permission$c_error' on the files at '$c_notice$filepath$c_error'"
+      fi
+    fi
+  elif [[ $type == "directory" ]] ; then
+    if [[ $permission_mode_directory == "none" ]] ; then
+      return
+    fi
+
+    kit_permission_get mode_directory "$permission_mode_directory"
+
+    if [[ $(kit_core_is_empty $permission) == "" ]] ; then
+      return
+    fi
+
+    if [[ $(kit_core_is_empty $recursive) == "" ]] ; then
+      kit_message_shell "chmod $permission $filepath"
+      chmod $permission $filepath
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to set mode '$c_notice$permission$c_error' on the directory '$c_notice$filepath$c_error'"
+      fi
+    else
+      kit_message_shell "chmod -R $permission $filepath"
+      chmod -R $permission $filepath
+
+      if [[ $? -ne 0 ]] ; then
+        kit_operation_error "Failed to set mode '$c_notice$permission$c_error' on the files at '$c_notice$filepath$c_error'"
+      fi
+    fi
+  elif [[ $type == "both" ]] ; then
+    if [[ $permission_mode_file != "none" ]] ; then
+      kit_permission_get mode_file "$permission_mode_file"
+
+      if [[ $(kit_core_is_empty $permission) != "" ]] ; then
+        filepaths=$(find $filepath -type f)
+
+        for i in $filepaths ; do
+          kit_message_shell "chmod $permission $i"
+          chmod $permission $i
+
+          if [[ $? -ne 0 ]] ; then
+            kit_operation_error "Failed to set mode '$c_notice$permission$c_error' on the file '$c_notice$i$c_error'"
+          fi
+        done
+      fi
+    fi
+
+    if [[ $permission_mode_directory != "none" ]] ; then
+      kit_permission_get mode_directory "$permission_mode_directory"
+
+      if [[ $(kit_core_is_empty $permission) != "" ]] ; then
+        filepaths=$(find $filepath -type d)
+
+        for i in $filepaths ; do
+          kit_message_shell "chmod $permission $i"
+          chmod $permission $i
+
+          if [[ $? -ne 0 ]] ; then
+            kit_operation_error "Failed to set mode '$c_notice$permission$c_error' on the directory '$c_notice$i$c_error'"
+          fi
+        done
+      fi
+    fi
+  fi
+}
+
+kit_operation_mode_resume() {
+  local name=
+  local line=
+
+  if [[ $(fss_basic_read -t -n permission_mode_directory $resume_path$resume_file) -gt 0 ]] ; then
+    line=$(fss_basic_read -n permission_mode_directory -c 0 $resume_path$resume_file)
+
+    if [[ $(kit_fss_has_error) != "" ]] ; then
+      kit_operation_error "Error while processing the mode data '${c_notice}permission_mode_directory$c_error' from the resume file '$c_notice$resume_path$resume_file$c_error', cannot resume"
+    fi
+
+    permission_mode_directory=$line
+  fi
+
+  if [[ $(fss_basic_read -t -n permission_mode_file $resume_path$resume_file) -gt 0 ]] ; then
+    line=$(fss_basic_read -n permission_mode_file -c 0 $resume_path$resume_file)
+
+    if [[ $(kit_fss_has_error) != "" ]] ; then
+      kit_operation_error "Error while processing the mode data '${c_notice}permission_mode_file$c_error' from the resume file '$c_notice$resume_path$resume_file$c_error', cannot resume"
+    fi
+
+    permission_mode_file=$line
+  fi
+}
+
+kit_operation_mode() {
+  local type=
+  local name=
+
+  # operation controls
+  local parent=$parent-$self
+  local self=operation
+
+  kit_operation_message
+
+  type=$(echo object $line | fss_extended_read -c 0 -s 0)
+  name=$(echo object $line | fss_extended_read -c 0 -s 1)
+
+  if [[ $type != "file" && $type != "directory" && $type != "both" ]] ; then
+    kit_operation_error "For the '$c_notice$operation$c_error' operation, the '${c_notice}type$c_error' parameter can only be one of: file, directory, or both"
+  fi
+
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
+    kit_operation_error "The '${c_notice}name$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
+  fi
+
+  if [[ $type == "directory" || $type == "both" ]] ; then
+    permission_mode_directory=$name
+  fi
+
+  if [[ $type == "file" || $type == "both" ]] ; then
+    permission_mode_file=$name
+  fi
+}

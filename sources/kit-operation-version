@@ -1,0 +1,131 @@
+#!/bin/bash
+# this provides an operation to obtain or set the version number for a particular package.
+#
+# arguments:
+#   type:
+#   - this is the version type to specify.
+#   - must be one of the following: major, minor, or micro.
+#   command:
+#   - this is the method in which to obtain or define the version.
+#   - must be one of the following: shell or set.
+#   data:
+#   - when the command is 'set', this is the version number.
+#   - when command is 'shell', this is the shell command to perform to obtain the version number.
+
+kit_operation_version_unset() {
+  unset kit_operation_version
+  unset kit_operation_version_resume
+}
+
+kit_operation_version() {
+  local type=
+  local command=
+  local data=
+  local version=
+  local temporary=
+
+  # operation controls
+  local parent=$parent-$self
+  local self=operation
+
+  kit_operation_message
+
+  type=$(echo object $line | fss_extended_read -c 0 -s 0)
+  command=$(echo object $line | fss_extended_read -c 0 -s 1)
+  data=$(echo object $line | fss_extended_read -c 0 -s 2)
+
+  if [[ $type != "major" && $type != "minor" && $type != "micro" ]] ; then
+    kit_operation_error "Invalid version type '$c_notice$type$c_error'"
+  fi
+
+  if [[ $command != "shell" && $command != "set" ]] ; then
+    kit_operation_error "Invalid version command '$c_notice$command$c_error', must be one of the following: set or shell"
+  fi
+
+  if [[ $command == "set" ]] ; then
+    version=$data
+  elif [[ $command == "shell" ]] ; then
+    if [[ $(kit_core_is_empty $data) == "" ]] ; then
+      kit_operation_error "For the '$c_notice$command$c_error' command, the actual command was not supplied."
+    fi
+
+    kit_message_shell "$data"
+    version=$(eval $data)
+
+    if [[ $? -ne 0 ]] ; then
+      kit_operation_error "Something went wrong while executing the shell command for the version operation"
+    fi
+  fi
+
+  if [[ $type == "major" ]] ; then
+    kit_reserved_set about_version_major "$version"
+  elif [[ $type == "minor" ]] ; then
+    kit_reserved_set about_version_minor "$version"
+  elif [[ $type == "micro" ]] ; then
+    kit_reserved_set about_version_micro "$version"
+  fi
+
+  # the version information has changed so reset the package version information
+  if [[ $about_version_major != "" ]] ; then
+    if [[ $about_version_minor != "" ]] ; then
+      if [[ $about_version_micro != "" ]] ; then
+        package_version=${about_version_major}.${about_version_minor}.${about_version_micro}
+      else
+        package_version=${about_version_major}.${about_version_minor}
+      fi
+    else
+      package_version=${about_version_major}
+    fi
+  fi
+
+  kit_message_log message "The package_version number is now: '$package_version'"
+
+  sed -i -e '/^[[:space:]]*about_version_major\>[[:space:]]*/d' $resume_path$resume_file
+  sed -i -e '/^[[:space:]]*about_version_micro\>[[:space:]]*/d' $resume_path$resume_file
+  sed -i -e '/^[[:space:]]*about_version_minor\>[[:space:]]*/d' $resume_path$resume_file
+
+  temporary=$(fss_extended_write -s -p "$about_version_major")
+  echo "$(fss_extended_write -s -o about_version_major)$temporary" >> $resume_path$resume_file
+  temporary=$(fss_extended_write -s -p "$about_version_minor")
+  echo "$(fss_extended_write -s -o about_version_minor)$temporary" >> $resume_path$resume_file
+  temporary=$(fss_extended_write -s -p "$about_version_micro")
+  echo "$(fss_extended_write -s -o about_version_micro)$temporary" >> $resume_path$resume_file
+}
+
+kit_operation_version_resume() {
+  local type=
+  local version=
+
+  for type in about_version_major about_version_minor about_version_micro ; do
+    if [[ $(fss_extended_read -n $type -t $resume_path$resume_file) -gt 0 ]] ; then
+      version=$(fss_extended_read -n $type -c 0 -s 0 $resume_path$resume_file)
+
+      if [[ $(kit_fss_has_error) != "" ]] ; then
+        kit_operation_error "Failed to load '$c_notice$type$c_error' from the file '$c_notice$resume_path$resume_file$c_error'"
+      fi
+
+
+      if [[ $type == "about_version_major" ]] ; then
+        kit_reserved_set about_version_major "$version"
+      elif [[ $type == "about_version_minor" ]] ; then
+        kit_reserved_set about_version_minor "$version"
+      elif [[ $type == "about_version_micro" ]] ; then
+        kit_reserved_set about_version_micro "$version"
+      fi
+    fi
+  done
+
+
+  # the version information may have changed so reset the package version information
+  if [[ $about_version_major != "" ]] ; then
+    if [[ $about_version_minor != "" ]] ; then
+      if [[ $about_version_micro != "" ]] ; then
+        package_version=${about_version_major}.${about_version_minor}.${about_version_micro}
+      else
+        package_version=${about_version_major}.${about_version_minor}
+      fi
+    else
+      package_version=${about_version_major}
+    fi
+  fi
+}

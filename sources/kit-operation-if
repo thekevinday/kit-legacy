@@ -1,0 +1,116 @@
+#!/bin/bash
+# the if operation performs simple/primitive tests and executes (or not) operations in its block.
+# supplies non-complex and non-nested if conditions with blocks of operations that will only be executed when the condition succeeds.
+#
+# type values:
+#   - is: perform a comparison against the value of some variable.
+#   - like: perform comparison against the value of some variable, using regex. TODO: pcre? grep?
+#   - end: terminate an if block.
+#
+# arguments
+#   type:
+#     - this is the type of if condition
+#   name:
+#     - if the type is 'compare', then this represents the unexpanded variable name.
+#     - not used for 'end' type.
+#   value:
+#     - the value or regex to compare against.
+#     - not used for 'end' type.
+
+kit_operation_if_unset() {
+  unset kit_operation_if_resume
+  unset kit_operation_if
+}
+
+kit_operation_if_resume() {
+  local type=
+  local condition=
+
+  if [[ $(fss_basic_read -t -n if_condition $resume_path$resume_file) -gt 0 ]] ; then
+    condition=$(fss_basic_read -n if_condition -c 0 $resume_path$resume_file)
+
+    if [[ $(kit_fss_has_error) != "" ]] ; then
+      kit_operation_error "Error while processing the if data '${c_notice}if_condition$c_error' from the resume file '$c_notice$resume_path$resume_file$c_error', cannot resume"
+    fi
+
+    if_condition=$condition
+  fi
+}
+
+kit_operation_if() {
+  local type=
+  local name=
+  local l_value=
+  local r_value=
+  local safe_object=
+  local safe_content=
+  local position=
+
+  # operation controls
+  local parent=$parent-$self
+  local self=operation
+
+  kit_operation_message
+
+  # TODO: if if_condition is already set, present error then return
+
+  type=$(echo object $line | fss_extended_read -c 0 -s 0)
+  name=$(echo object $line | fss_extended_read -c 0 -s 1)
+  r_value=$(echo object $line | fss_extended_read -c 0 -s 2)
+
+  if [[ $(kit_core_is_empty $type) == "" ]] ; then
+    kit_operation_error "The '${c_notice}type$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
+  fi
+
+  if [[ $type == "is" ]] ; then
+    if [[ $(kit_core_is_empty $name) == "" ]] ; then
+      kit_operation_error "The '${c_notice}name$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
+    fi
+
+    position=$(kit_reserved_is $name)
+
+    if [[ $(kit_core_is_empty $position) == "" ]] ; then
+      position=$(kit_dynamic_is $name)
+
+      if [[ $(kit_core_is_empty $position) == "" ]] ; then
+        position=$(kit_permission_is $name)
+
+        if [[ $(kit_core_is_empty $position) == "" ]] ; then
+          l_value=
+          # TODO: if variable does not exist, print error and return.
+        else
+          kit_permission_get $name
+          l_value=$reserved
+        fi
+      else
+        kit_dynamic_get $name
+        l_value=$reserved
+      fi
+      # TODO: also check for non-reserved variables.
+    else
+      kit_reserved_get $name
+      l_value=$reserved
+    fi
+
+    if [[ $l_value == $r_value ]] ; then
+      if_condition=true
+    else
+      if_condition=false
+    fi
+
+    sed -i -e '/^[[:space:]]*if_condition\>[[:space:]]*/d' $resume_path$resume_file
+
+    safe_object=$(fss_extended_write -s -o "if_condition")
+    safe_content=$(fss_extended_write -s -p "$if_condition")
+    echo "$safe_object$safe_content" >> $resume_path$resume_file
+
+  # TODO: implement $type == "like"
+  #elif [[ $type == "like" ]] ; then
+  elif [[ $type == "end" ]] ; then
+    sed -i -e '/^[[:space:]]*if_condition\>[[:space:]]*/d' $resume_path$resume_file
+
+    if_condition=
+  else
+    kit_operation_error "'$c_notice$type$c_error' is not a supported value for the '${c_notice}type$c_error' parameter for the '$c_notice$operation$c_error' operation"
+  fi
+}

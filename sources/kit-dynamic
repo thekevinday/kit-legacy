@@ -1,0 +1,542 @@
+#!/bin/bash
+# provides functions for reading and writing dynamic variables.
+
+kit_dynamic_unset() {
+  unset kit_dynamic_error
+  unset kit_dynamic_is
+  unset kit_dynamic_set
+  unset kit_dynamic_get
+  unset kit_dynamic_required_load_names
+  unset kit_dynamic_process
+  unset kit_dynamic_process_inline
+  unset kit_dynamic_optional_load_names
+  unset kit_dynamic_inline_load_names
+  unset kit_dynamic_inline_resume
+  unset kit_dynamic_strategy_prepare
+  unset kit_dynamic_strategy_load
+  unset kit_dynamic_sanitize
+  unset kit_dynamic_safe_expand
+}
+
+kit_dynamic_error() {
+  kit_message_error "$*"
+
+  cleanup_before_exit
+  exit -6
+}
+
+kit_dynamic_is() {
+  local name=$1
+
+  echo -n $(echo $dynamic_variables | grep -s -o "\<$name=[[:digit:]]*\>" | sed -e "s|$name=||")
+}
+
+kit_dynamic_set() {
+  local name=$1
+  local value=$2
+  local position=
+
+  position=$(kit_dynamic_is $name)
+
+  if [[ $position == "" ]] ; then
+    if [[ $dynamic_total == "" ]] ; then
+      dynamic_total=0
+    fi
+    dynamic_data[$dynamic_total]=$value
+    dynamic_variables="${dynamic_variables}$name=$dynamic_total "
+    let dynamic_total++
+  else
+    dynamic_data[$position]=$value
+  fi
+
+  kit_log_message save dynamic "$name" "$value"
+}
+
+kit_dynamic_get() {
+  local name=$1
+  local name_custom=$2
+  local position=
+  local file=
+  local list=
+
+  if [[ $name == "" ]] ; then
+    dynamic=
+    return
+  fi
+
+  if [[ $(kit_core_is_empty $name_custom) == "" ]] ; then
+    name_custom=$name
+  fi
+
+  dynamic=
+  position=$(kit_dynamic_is "$name")
+
+  # loading priority is: memory (dynamic_data), system settings, and then distribution settings.
+  if [[ $position != "" && $position -ge 0 ]] ; then
+    dynamic=${dynamic_data[$position]}
+
+    kit_log_message load dynamic "$name" "$dynamic"
+  else
+    for file in "$system_settings_path$system_settings_file" "$distribution_settings_path$distribution_settings_file" ; do
+      if [[ -f $file ]] ; then
+        for list in "$name_custom" "$system_settings_name" ; do
+
+          if [[ $(fss_basic_list_read -n $list -t $file) -gt 0 && $(fss_basic_list_read -c 0 -n $list $file | fss_basic_read -t -n $name) -gt 0 ]] ; then
+            kit_log_message load dynamic "$name" "fss_basic_list_read -c 0 -n $list $file | fss_basic_read -c 0 -n $name"
+            dynamic=$(fss_basic_list_read -c 0 -n $list $file | fss_basic_read -c 0 -n $name)
+            kit_dynamic_set "$name" "$dynamic"
+            return
+          fi
+        done
+      fi
+    done
+  fi
+}
+
+kit_dynamic_required_load_names() {
+  local path=$1
+  local file=$2
+
+  dynamic_required=
+
+  if [[ -f $path$file ]] ; then
+    dynamic_required=$(grep -s -o '\[\[[[:alnum:]_]*]]' $path$file | sort | uniq | sed -e 's|^\[\[||g' -e 's|]]$||g')
+  fi
+}
+
+kit_dynamic_process() {
+  local type=$1
+  local path=$2
+  local file=$3
+  local name_custom=$4
+  local name=
+  local variable=
+  local dynamic=
+  local position=
+  local reserved=
+  local answer=
+  local sanitized=
+  local variables=
+  local processed=
+  local expanded=
+  local dynamic_inline=
+
+  if [[ $type == "required" ]] ; then
+    variables=$dynamic_required
+  elif [[ $type == "optional" ]] ; then
+    variables=$dynamic_optional
+  elif [[ $type == "inline" ]] ; then
+    kit_dynamic_inline_load_names
+    variables="$dynamic_inline"
+    name_custom=$2
+  else
+    return
+  fi
+
+  while [[ $variables != "" ]] ; do
+
+    for name in $variables ; do
+      if [[ $type == "required" ]] ; then
+        variable="[[$name]]"
+      elif [[ $type == "optional" ]] ; then
+        variable="[<$name>]"
+      elif [[ $type == "inline" ]] ; then
+        variable="[{$name}]"
+
+        # process variables only once, strip recursive names (preventing infinite recursion)
+        if [[ $(echo "$processed" | grep -s -o "\<$name\>") != "" ]] ; then
+          line=$(echo -n "$line" | sed -e "s|\[{$name}]||g")
+          continue;
+        fi
+      fi
+
+      position=$(kit_reserved_is $name)
+      kit_dynamic_strategy_load $name
+
+      if [[ $position == "global" || $(echo "$parent" | grep -s -o "\<$position\>") != "" || $position == $self ]] ; then
+        kit_reserved_get "$name"
+
+        if [[ $strategy_length -gt 0 ]] ; then
+          kit_dynamic_sanitize "$name" "$reserved"
+
+          if [[ $? -eq 0 ]] ; then
+            if [[ $type == "required" ]] ; then
+              sed -i -e "s|\[\[$name]]|$sanitized|g" $path$file
+            elif [[ $type == "optional" ]] ; then
+              sed -i -e "s|\[<$name>]|$sanitized|g" $path$file
+            elif [[ $type == "inline" ]] ; then
+              line=$(echo -n "$line" | sed -e "s|\[{$name}]||g")
+              processed="$processed$name "
+            fi
+          else
+            if [[ $strategy_type == "list" ]] ; then
+              kit_dynamic_error "'$c_notice$reserved$c_error' is not a valid choice for '$c_notice$name$c_error'$c_reset"
+            fi
+          fi
+        else
+          if [[ $type == "required" ]] ; then
+            sed -i -e "s|\[\[$name]]|$reserved|g" $path$file
+          elif [[ $type == "optional" ]] ; then
+            sed -i -e "s|\[<$name>]|$reserved|g" $path$file
+          elif [[ $type == "inline" ]] ; then
+            line=$(echo -n "$line" | sed -e "s|\[{$name}]|$reserved|g")
+            processed="$processed$name "
+          fi
+        fi
+      else
+        kit_dynamic_get "$name" "$name_custom"
+        position=$(kit_dynamic_is $name)
+
+        if [[ $(kit_core_is_empty $position) == "" ]] ; then
+          if [[ $type == "required" ]] ; then
+            answer=
+
+            while [[ $answer == "" ]] ; do
+              echo
+              echo -e "Define the value for the variable $c_notice$name$c_reset (required)."
+              echo -n "# "
+              read answer
+
+              if [[ $strategy_length -gt 0 ]] ; then
+                kit_dynamic_sanitize "$name" "$answer"
+
+                if [[ $? -eq 0 ]] ; then
+                  answer=$sanitized
+                  break;
+                else
+                  if [[ $strategy_type == "list" ]] ; then
+                    kit_message_error "'$c_notice$answer$c_error' is not a valid choice for '$c_notice$name$c_error'$c_reset"
+                  fi
+
+                  answer=
+                fi
+              fi
+            done
+
+            kit_dynamic_set "$name" "$answer"
+            sed -i -e "s|\[\[$name]]|$answer|g" $path$file
+          elif [[ $type == "optional" ]] ; then
+            sed -i -e "s|\[<$name>]||g" $path$file
+          elif [[ $type == "inline" ]] ; then
+            line=$(echo -n "$line" | sed -e "s|\[{$name}]||g")
+            processed="$processed$name "
+          fi
+        else
+          if [[ $strategy_length -gt 0 ]] ; then
+            kit_dynamic_sanitize "$name" "$dynamic"
+
+            if [[ $? -eq 0 ]] ; then
+              if [[ $type == "required" ]] ; then
+                sed -i -e "s|\[\[$name]]|$sanitized|g" $path$file
+              elif [[ $type == "optional" ]] ; then
+                sed -i -e "s|\[<$name>]|$sanitized|g" $path$file
+              elif [[ $type == "inline" ]] ; then
+                line=$(echo -n "$line" | sed -e "s|\[{$name}]|$sanitized|g")
+                processed="$processed$name "
+              fi
+            else
+              if [[ $strategy_type == "list" ]] ; then
+                kit_dynamic_error "'$c_notice$dynamic$c_error' is not a valid choice for '$c_notice$name$c_error'$c_reset"
+              fi
+            fi
+          else
+            if [[ $type == "required" ]] ; then
+              sed -i -e "s|\[\[$name]]|$dynamic|g" $path$file
+            elif [[ $type == "optional" ]] ; then
+              sed -i -e "s|\[<$name>]|$dynamic|g" $path$file
+            elif [[ $type == "inline" ]] ; then
+              line=$(echo -n "$line" | sed -e "s|\[{$name}]|$dynamic|g")
+              processed="$processed$name "
+            fi
+          fi
+        fi
+      fi
+    done
+
+
+    # allow a limited form of recursion on inline variables
+    if [[ $type == "inline" ]] ; then
+      kit_dynamic_inline_load_names
+      variables=$dynamic_inline
+    else
+      variables=
+    fi
+  done
+}
+
+kit_dynamic_optional_load_names() {
+  local path=$1
+  local file=$2
+
+  dynamic_optional=
+
+  if [[ -f $path$file ]] ; then
+    dynamic_optional=$(grep -s -o '\[<[[:alnum:]_]*>]' $path$file | sort | uniq | sed -e 's|^\[<||g' -e 's|>]$||g')
+  fi
+}
+
+kit_dynamic_inline_load_names() {
+  dynamic_inline=$(echo -n "$line" | grep -s -o '\[{[[:alnum:]_]*}]' | sort | uniq | sed -e 's|^\[{||g' -e 's|}]$||g')
+}
+
+kit_dynamic_inline_resume() {
+  local name=
+  local count=
+  local total=
+  local position=
+  local data=
+
+  if [[ ! -f $resume_path$resume_file ]] ; then
+    kit_message_log warning "Failed to load the resume file '$c_notice$resume_path$resume_file$c_error', it does not exist"
+    return
+  fi
+
+  total=$(fss_extended_read -n variable -t $resume_path$resume_file)
+
+  if [[ $(kit_fss_has_error) != "" ]] ; then
+    kit_dynamic_error "Failed to load the resume file '$c_notice$resume_path$resume_file$c_error'"
+  fi
+
+  if [[ $(kit_core_is_empty $total) == "" ]] ; then
+    return
+  fi
+
+  let count=0
+
+  while [[ $count -lt $total ]] ; do
+    name=$(fss_extended_read -n variable -s 0 -c 0 $resume_path$resume_file)
+
+    if [[ $(echo "$inline_variables" | grep -s -o "\[{$name}]") != "" ]] ; then
+      data=$(fss_extended_read -n variable -s 1 -c 0 $resume_path$resume_file)
+
+      if [[ $? -ne 0 ]] ; then
+        kit_dynamic_error "While loading the inline variable resume data for '$c_notice$name$c_error' from '$c_notice$resume_path$resume_file$c_error'"
+      fi
+
+      position=$(kit_reserved_is $name)
+
+      if [[ $position == "global" || $position == $parent || $position == $self ]] ; then
+        eval $name=\$data
+      else
+        kit_dynamic_set $name "$data"
+      fi
+    fi
+
+    let count++
+  done
+}
+
+kit_dynamic_strategy_prepare() {
+  if [[ ! -f $strategy_path$strategy_file ]] ; then
+    kit_message_shell "fss_basic_list_read $system_cache_path$rule_path_base$rule_path_rule$rule_file -n variables > $strategy_path$strategy_file"
+    fss_basic_list_read $system_cache_path$rule_path_base$rule_path_rule$rule_file -n variables > $strategy_path$strategy_file
+
+    if [[ $(kit_fss_has_error) != "" ]] ; then
+      kit_rule_error "Failed to generate '$c_notice$strategy_path$strategy_file$c_error' from '${c_notice}variable$c_error' of the file '$c_notice$system_cache_path$rule_path_base$rule_path_rule$rule_file$c_error'"
+    fi
+  fi
+
+  kit_log_message load strategy_names "fss_extended_read -o $strategy_path$strategy_file"
+  strategy_names=$(fss_extended_read -o $strategy_path$strategy_file)
+
+  if [[ $(kit_fss_has_error) != "" ]] ; then
+    kit_dynamic_error "Failed to load the strategy names from '$c_notice$strategy_path$strategy_file$c_error'"
+  fi
+}
+
+kit_dynamic_strategy_load() {
+  local name=$1
+  local c=0
+
+  strategy_length=
+  strategy_data=
+
+  kit_log_message load strategy_length "fss_extended_read -n $name -c 0 -t $strategy_path$strategy_file"
+  strategy_length=$(fss_extended_read -n $name -c 0 -t $strategy_path$strategy_file)
+
+  if [[ $(kit_fss_has_error) != "" ]] ; then
+    kit_dynamic_error "Failed to read the '$c_notice$name${c_error}' strategy data length from '$c_notice$strategy_path$strategy_file$c_error'"
+  fi
+
+  if [[ $(kit_core_is_empty $strategy_length) == "" || $strategy_length -eq 0 ]] ; then
+    return
+  fi
+
+  while [[ $c -lt $strategy_length ]] ; do
+    kit_log_message load "strategy_data[$c]" "fss_extended_read -n $name -c 0 -s $c $strategy_path$strategy_file"
+    strategy_data[$c]=$(fss_extended_read -n $name -c 0 -s $c $strategy_path$strategy_file)
+
+    if [[ $(kit_fss_has_error) != "" ]] ; then
+      kit_dynamic_error "Failed to read parameter '$c_notice$c${c_error}' of the '$c_notice$name${c_error}' strategy data from '$c_notice$strategy_path$strategy_file$c_error'"
+    fi
+
+    let c++
+  done
+}
+
+kit_dynamic_sanitize() {
+  local variable=$1
+  local data=$2
+  local strategy_type=
+  local c=
+
+  sanitized=
+
+  if [[ ! $strategy_length -gt 0 ]] ; then
+    return 0
+  fi
+
+  strategy_type=${strategy_data[0]}
+
+  if [[ $strategy_type == "directory" ]] ; then
+    sanitized=$(echo -n ${strategy_data[1]} | sed -e 's|/*$|/|' -e 's|^/+|/|')
+
+    return 0
+  elif [[ $strategy_type == "list" ]] ; then
+    if [[ $strategy_length -eq 1 ]] ; then
+      return 1
+    fi
+
+    let c=1
+
+    while [[ $c -lt $strategy_length ]] ; do
+      if [[ ${strategy_data[$c]} == $data ]] ; then
+        sanitized=$data
+        return 0
+      fi
+
+      let c++
+    done
+  fi
+
+  return 1
+}
+
+kit_dynamic_safe_expand() {
+  local v=$1
+  local o=
+  local format=
+  local c1=0
+  local t1=
+  local c2=0
+  local t2=
+  local safe=
+  local part=
+
+  expanded=
+
+  if [[ $type == "inline" ]] ; then
+    kit_operation_format "$operation"
+
+    if [[ $format == "fss_basic" || $(kit_core_is_empty $line) == "" ]] ; then
+      line=$(echo "$line" | sed -e "s|\[<$name>]|$v|g")
+
+      if [[ $? -ne 0 ]] ; then
+        kit_dynamic_error "Failed to convert inline variable from '${c_notice}[<$name>]${c_error}' to '$c_notice$v$c_error'"
+      fi
+
+      return
+    fi
+
+    t1=$(echo "object $line" | fss_extended_read -c 0 -t -n object)
+
+    if [[ ! $t1 -gt 0 ]] ; then
+      return
+    fi
+
+    while [[ $c1 -lt $t1 ]] ; do
+      part=$(fss_extended_read -c 0 -s $c1)
+
+      if [[ $(fss_has_error) != "" ]] ; then
+        kit_dynamic_error "Failed to load inline variable data at position '$c_notice$c1${c_error}' for expansion"
+      fi
+
+      part=$(echo "$part" | sed -e "s|\[{$name}]|$v|g")
+
+      if [[ $? -ne 0 ]] ; then
+        kit_dynamic_error "Failed to convert inline variable from '${c_notice}[{$name}]${c_error}' to '$c_notice$v$c_error'"
+      fi
+
+      safe=$(fss_extended_write -s -p "$part")
+
+      if [[ $(fss_has_error) != "" ]] ; then
+        kit_dynamic_error "Failed to sanitize the converted inline variable part '$c_notice$part${c_error}'"
+      fi
+
+      expanded="$expanded$safe "
+
+      let c1++
+    done
+
+    line=$expanded
+    return
+  fi
+
+  t2=$(fss_extended_read -t $path$file)
+
+  if [[ ! $t2 -gt 0 ]] ; then
+    return
+  fi
+
+  while [[ $c2 -lt $t2 ]] ; do
+    o=$(fss_extended_read -c $c2 -o $path$file)
+    kit_operation_format "$o"
+
+    # FIXME: these sed commands will potentially fail if the resume file has any non-fss valid lines, FSS read and write functions need to support literal/exact line detection in addition to the usual relative line numbering.
+    if [[ $format == "fss_basic" ]] ; then
+      if [[ $type == "required" ]] ; then
+        sed -i -e "${c2}s|\[\[$name]]|$v|g" $path$file
+
+        if [[ $? -ne 0 ]] ; then
+          kit_dynamic_error "Failed to convert required variable from '${c_notice}[[$name]]${c_error}' to '$c_notice$v$c_error' at line '$c_notice$c2${c_error}' of '$c_notice$path$file${c_error}'"
+        fi
+      elif [[ $type == "optional" ]] ; then
+        sed -i -e "${c2}s|\[<$name>]|$v|g" $path$file
+
+        if [[ $? -ne 0 ]] ; then
+          kit_dynamic_error "Failed to convert optional variable from '${c_notice}[<$name>]${c_error}' to '$c_notice$v$c_error' at line '$c_notice$c2${c_error}' of '$c_notice$path$file${c_error}'"
+        fi
+      fi
+    elif [[ $format == "fss_extended" ]] ; then
+      # FIXME: looks like a bug in fss_*_read where -c 0 -t does not give the total for extended content of that line.., for now grab the object name and use it with -n to get the total
+      t1=$(fss_extended_read -c $c2 -t -n $o $path$file)
+      c1=0
+
+      if [[ ! $t1 -gt 0 ]] ; then
+        return
+      fi
+
+      while [[ $c1 -lt $t1 ]] ; do
+        part=$(fss_extended_read -c $c2 -s $c1 $path$file)
+
+        if [[ $(fss_has_error) != "" ]] ; then
+          kit_dynamic_error "Failed to load $type variable data at position '$c_notice$c1${c_error}' of line '$c_notice$c2${c_error}' of '$c_notice$path$file${c_error}' for expansion"
+        fi
+
+        if [[ $type == "required" ]] ; then
+          part=$(echo "$part" | sed -e "s|\[\[$name]]|$v|g")
+        elif [[ $type == "optional" ]] ; then
+          part=$(echo "$part" | sed -e "s|\[<$name>]|$v|g")
+        fi
+
+        if [[ $? -ne 0 ]] ; then
+          kit_dynamic_error "Failed to convert $type variable from '${c_notice}[{$name}]${c_error}' of line '$c_notice$c2${c_error}' of '$c_notice$path$file${c_error}' to '$c_notice$v$c_error'"
+        fi
+
+        safe=$(fss_extended_write -s -p "$part")
+
+        if [[ $(fss_has_error) != "" ]] ; then
+          kit_dynamic_error "Failed to sanitize the converted $type variable part '$c_notice$part${c_error}' of line '$c_notice$c2${c_error}' of '$c_notice$path$file${c_error}'"
+        fi
+
+        expanded="$expanded$safe "
+
+        let c1++
+      done
+
+      sed -i -e "${c2}s|^.*$|$expanded|g" $path$file
+    fi
+
+    let c2++
+  done
+}

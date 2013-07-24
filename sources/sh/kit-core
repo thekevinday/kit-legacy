@@ -1,0 +1,244 @@
+#!/bin/bash
+# License: lgpl v2
+
+standard_unset(){
+  unset standard_main_execute
+  unset standard_main
+  unset standard_prepare_input
+  unset standard_handle_colors
+  unset standard_help_title
+  unset standard_help_options
+  unset standard_error
+  unset standard_warning
+  unset standard_is_empty
+  unset standard_unset
+  unset standard_to_lower
+  unset standard_to_upper
+  unset standard_alpha_numeric
+  unset standard_directory_ending
+  unset standard_get_random
+}
+
+standard_main(){
+  local public_name=
+  local system_name=
+  local called_name=
+  local version=
+  local the_operation=
+  local grab_next=
+  local do_color=normal
+  local do_help=
+  local i=
+  local count=
+
+  if [[ $# -gt 0 ]] ; then
+    local main_input=
+    local main_size=$#
+
+    while [[ $count -lt $main_size ]] ; do
+      let i=$count+1
+      main_input[$count]=${!i}
+      let count=$count+1
+    done
+
+    i=
+    count=0
+  fi
+
+  local c_reset="\\033[0m"
+  local c_title="\\033[1;33m"
+  local c_error="\\033[1;31m"
+  local c_warning="\\033[0;33m"
+  local c_highlight="\\033[1;32m"
+  local c_notice="\\033[0;01m"
+  local c_important="\\033[0;32m"
+  local c_subtle="\\033[1;30m"
+  local c_prefix="\\"
+
+  $standard_main_execute
+}
+
+standard_handle_colors(){
+  if [[ $do_color == "light" ]] ; then
+    c_error="\\033[1;31m"
+    c_warning="\\033[0;31m"
+    c_title="\\033[1;34m"
+    c_highlight="\\033[0;34m"
+    c_notice="\\033[0;01m"
+    c_important="\\033[0;35m"
+  elif [[ $do_color == "none" ]] ; then
+    c_reset=
+    c_title=
+    c_error=
+    c_warning=
+    c_highlight=
+    c_notice=
+    c_important=
+    c_subtle=
+    c_prefix=
+  fi
+}
+
+standard_help_title(){
+  echo
+  echo -e "${c_title}$public_name$c_reset"
+  echo -e "  ${c_notice}Version $version$c_reset"
+  echo
+}
+
+standard_help_options(){
+  echo -e "${c_highlight}Options:$c_reset"
+  echo -e " -${c_important}h${c_reset}, --${c_important}help${c_reset}      Print this help screen"
+  echo -e " +${c_important}l${c_reset}, ++${c_important}light${c_reset}     Use color modes that show up better on light backgrounds"
+  echo -e " +${c_important}n${c_reset}, ++${c_important}no_color${c_reset}  Do not use color"
+  echo -e " +${c_important}v${c_reset}, ++${c_important}version${c_reset}   Print the version number of this program"
+  echo
+}
+
+standard_error(){
+  echo -e "${c_error}ERROR: $*$c_reset"
+}
+
+standard_warning(){
+  echo -e "${c_warning}WARNING: $*$c_reset"
+}
+
+standard_is_empty(){
+  if [[ $(echo $1 | sed -e "s|[[:space:]]||g") != "" ]] ; then
+    echo -n n
+  fi
+}
+
+standard_to_lower(){
+  echo -n $(echo $* | sed -e 's/\(.*\)/\L\1/')
+}
+
+standard_to_upper(){
+  echo -n $(echo $* | sed -e 's/\(.*\)/\U\1/')
+}
+
+standard_alpha_numeric(){
+  echo -n $(echo $* | sed -e 's|[[:punct:][:space:][:cntrl:]]*||g')
+}
+
+standard_directory_ending(){
+  echo -n $(echo $i | sed -e 's|/*$|/|')
+}
+
+standard_datetimestamp(){
+  echo -n $(date +%Y-%m-%dT%H:%M:%S%z)
+}
+
+standard_datetimestamp_safe(){
+  echo -n $(date +%Y_%m_%d-%H_%M_%S%z)
+}
+
+standard_get_random(){
+  local method=$1
+  local minimum=$2
+  local maximum=$3
+  local current=0
+  local goal=$[ ( $RANDOM % $maximum ) ]
+  local number=
+
+  if [[ $goal -lt $minimum ]] ; then
+    let goal=$minimum
+  fi
+
+  while [[ $current -lt $goal ]] ; do
+    if [[ $method == "numeric" ]] ; then
+      number=$[ ( $RANDOM % 10 ) ]
+    elif [[ $method == "alphanumeric" ]] ; then
+      number=$[ ( $RANDOM % 62 ) ]
+    elif [[ $method == "all" ]] ; then
+      number=$[ ( $RANDOM % 89 ) ]
+    fi
+
+    case $number in
+      "10") echo -n "A";;
+      "11") echo -n "B";;
+      "12") echo -n "C";;
+      "13") echo -n "D";;
+      "14") echo -n "E";;
+      "15") echo -n "F";;
+      "16") echo -n "G";;
+      "17") echo -n "H";;
+      "18") echo -n "I";;
+      "19") echo -n "J";;
+      "20") echo -n "K";;
+      "21") echo -n "L";;
+      "22") echo -n "M";;
+      "23") echo -n "N";;
+      "24") echo -n "O";;
+      "25") echo -n "P";;
+      "26") echo -n "Q";;
+      "27") echo -n "R";;
+      "28") echo -n "S";;
+      "29") echo -n "T";;
+      "30") echo -n "U";;
+      "31") echo -n "V";;
+      "32") echo -n "W";;
+      "33") echo -n "X";;
+      "34") echo -n "Y";;
+      "35") echo -n "Z";;
+      "36") echo -n "a";;
+      "37") echo -n "b";;
+      "38") echo -n "c";;
+      "39") echo -n "d";;
+      "40") echo -n "e";;
+      "41") echo -n "f";;
+      "42") echo -n "g";;
+      "43") echo -n "h";;
+      "44") echo -n "i";;
+      "45") echo -n "j";;
+      "46") echo -n "k";;
+      "47") echo -n "l";;
+      "48") echo -n "m";;
+      "49") echo -n "n";;
+      "50") echo -n "o";;
+      "51") echo -n "p";;
+      "52") echo -n "q";;
+      "53") echo -n "r";;
+      "54") echo -n "s";;
+      "55") echo -n "t";;
+      "56") echo -n "u";;
+      "57") echo -n "v";;
+      "58") echo -n "w";;
+      "59") echo -n "x";;
+      "60") echo -n "y";;
+      "61") echo -n "z";;
+      "62") echo -n "~";;
+      "63") echo -n "!";;
+      "64") echo -n "@";;
+      "65") echo -n "#";;
+      "66") echo -n "$";;
+      "67") echo -n "%";;
+      "68") echo -n "^";;
+      "69") echo -n "&";;
+      "70") echo -n "*";;
+      "71") echo -n "(";;
+      "72") echo -n ")";;
+      "73") echo -n "-";;
+      "74") echo -n "+";;
+      "75") echo -n "\`";;
+      "76") echo -n "\"";;
+      "77") echo -n "'";;
+      "78") echo -n "{";;
+      "79") echo -n "}";;
+      "80") echo -n "[";;
+      "81") echo -n "]";;
+      "82") echo -n "|";;
+      "83") echo -n "\\";;
+      "84") echo -n ";";;
+      "85") echo -n ">";;
+      "86") echo -n "<";;
+      "87") echo -n ",";;
+      "88") echo -n ".";;
+      "87") echo -n "=";;
+      "88") echo -n "_";;
+      *)    echo -n $number;;
+    esac
+
+    let current=$current+1
+  done
+}

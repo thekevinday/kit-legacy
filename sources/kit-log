@@ -1,0 +1,53 @@
+#!/bin/bash
+# provides log generation functions.
+
+kit_log_unset() {
+  unset kit_log_section
+  unset kit_log_message
+  unset kit_log_message_raw
+}
+
+kit_log_section() {
+  if [[ ! -f $logs_path$logs_file ]] ; then
+    echo -e "# fss-0002\n" >> $logs_path$logs_file
+  fi
+
+  echo >> $logs_path$logs_file
+  echo "$(standard_datetimestamp_safe):" >> $logs_path$logs_file
+}
+
+kit_log_message() {
+  local count=2
+  local total=$#
+  local string=
+
+  if [[ ! -f $logs_path$logs_file ]] ; then
+    kit_log_section
+  fi
+
+  if [[ $total -eq 0 ]] ; then
+    echo >> $logs_path$logs_file
+  else
+    string=$(fss_extended_write -s -o "$1")
+    echo -n "  $string" >> $logs_path$logs_file
+
+    while [[ $count -le $total ]] ; do
+      string=$(fss_extended_write -p -s "${!count}")
+      echo -n "$string" >> $logs_path$logs_file
+
+      let count++
+    done
+
+    echo >> $logs_path$logs_file
+  fi
+}
+
+kit_log_message_raw() {
+  local total=$#
+
+  if [[ $total -eq 0 ]] ; then
+    echo >> $logs_path$logs_file
+  else
+    echo "  $arguments" >> $logs_path$logs_file
+  fi
+}
