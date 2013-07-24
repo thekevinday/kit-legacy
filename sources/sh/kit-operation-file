@@ -29,7 +29,7 @@
 #   destination:
 #   - the directory name in which the file will be installed to.
 #   source (conditionally optional):
-#   - if omitted, then the file is created an not copied.
+#   - if omitted, then the file is created and not copied.
 #   - can only be ommitted for file operation.
 #   - this is either the source directory or source file.
 #   - if it is a directory, then the file name is derived from the name argument above.
@@ -57,11 +57,11 @@ kit_operation_file() {
   destination=$(echo object $line | fss_extended_read -c 0 -s 1)
   source=$(echo object $line | fss_extended_read -c 0 -s 2)
 
-  if [[ $(standard_is_empty $name) == "" ]] ; then
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
     kit_operation_error "Missing file name"
   fi
 
-  if [[ $(standard_is_empty $destination) == "" ]] ; then
+  if [[ $(kit_core_is_empty $destination) == "" ]] ; then
     kit_operation_error "Missing destination path"
   fi
 
@@ -75,7 +75,7 @@ kit_operation_file() {
     dereference="dereference"
   fi
 
-  if [[ $(standard_is_empty $source) == "" ]] ; then
+  if [[ $(kit_core_is_empty $source) == "" ]] ; then
     if [[ $operation == "file_dereference" || $operation == "file_new_dereference" || $operation == "file_safe" || $operation == "executable" || $operation == "executable_dereference" || $operation == "executable_safe" ]] ; then
       kit_operation_error "Cannot use the '$c_notice$operation$c_error' operation without specifying a source file"
     fi
@@ -91,7 +91,7 @@ kit_operation_file() {
       kit_operation_attribute_apply file "$installation_base$destination$name" $dereference
       kit_operation_group_apply "$installation_base$destination$name" $dereference
       kit_operation_mode_apply file "$installation_base$destination$name" $dereference
-      #kit_operation_acess_apply file "$installation_base$destination$name" $dereference
+      #kit_operation_access_apply file "$installation_base$destination$name" $dereference
     fi
   else
     if [[ -d $source ]] ; then
@@ -119,7 +119,7 @@ kit_operation_file() {
     kit_operation_attribute_apply file "$installation_base$filepath" $dereference
     kit_operation_group_apply "$installation_base$filepath" $dereference
     kit_operation_mode_apply file "$installation_base$filepath" $dereference
-    #kit_operation_acess_apply both "$installation_base$filepath" $dereference
+    #kit_operation_access_apply both "$installation_base$filepath" $dereference
 
     if [[ $operation == "file" || $operation == "file_new" || $operation == "executable" ]] ; then
       kit_message_shell "cp -fa $filepath $installation_base$destination$name"

@@ -3,7 +3,7 @@
 # with this operation, file and directory permissions are store in separate variables and only get applied for their appropriate type.
 #
 # arguments
-#   tyoe:
+#   type:
 #     - this designates what category the permission belongs under.
 #     - can be one of the following: file, directory, both.
 #   name:
@@ -31,11 +31,11 @@ kit_operation_mode_apply() {
 
     kit_permission_get mode_file "$permission_mode_file"
 
-    if [[ $(standard_is_empty $permission) == "" ]] ; then
+    if [[ $(kit_core_is_empty $permission) == "" ]] ; then
       return
     fi
 
-    if [[ $(standard_is_empty $recursive) == "" ]] ; then
+    if [[ $(kit_core_is_empty $recursive) == "" ]] ; then
       kit_message_shell "chmod $permission $filepath"
       chmod $permission $filepath
 
@@ -57,11 +57,11 @@ kit_operation_mode_apply() {
 
     kit_permission_get mode_directory "$permission_mode_directory"
 
-    if [[ $(standard_is_empty $permission) == "" ]] ; then
+    if [[ $(kit_core_is_empty $permission) == "" ]] ; then
       return
     fi
 
-    if [[ $(standard_is_empty $recursive) == "" ]] ; then
+    if [[ $(kit_core_is_empty $recursive) == "" ]] ; then
       kit_message_shell "chmod $permission $filepath"
       chmod $permission $filepath
 
@@ -80,7 +80,7 @@ kit_operation_mode_apply() {
     if [[ $permission_mode_file != "none" ]] ; then
       kit_permission_get mode_file "$permission_mode_file"
 
-      if [[ $(standard_is_empty $permission) != "" ]] ; then
+      if [[ $(kit_core_is_empty $permission) != "" ]] ; then
         filepaths=$(find $filepath -type f)
 
         for i in $filepaths ; do
@@ -97,7 +97,7 @@ kit_operation_mode_apply() {
     if [[ $permission_mode_directory != "none" ]] ; then
       kit_permission_get mode_directory "$permission_mode_directory"
 
-      if [[ $(standard_is_empty $permission) != "" ]] ; then
+      if [[ $(kit_core_is_empty $permission) != "" ]] ; then
         filepaths=$(find $filepath -type d)
 
         for i in $filepaths ; do
@@ -155,7 +155,7 @@ kit_operation_mode() {
     kit_operation_error "For the '$c_notice$operation$c_error' operation, the '${c_notice}type$c_error' parameter can only be one of: file, directory, or both"
   fi
 
-  if [[ $(standard_is_empty $name) == "" ]] ; then
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
     kit_operation_error "The '${c_notice}name$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
   fi
 

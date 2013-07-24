@@ -19,7 +19,7 @@ kit_operation_shell() {
 
   kit_operation_message
 
-  if [[ $(standard_is_empty $line) == "" ]] ; then
+  if [[ $(kit_core_is_empty $line) == "" ]] ; then
     kit_operation_error "No shell command given"
   fi
 

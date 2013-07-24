@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for reading and writing reserved variables.
 
 kit_reserved_unset() {
   unset kit_reserved_is
@@ -20,7 +21,7 @@ kit_reserved_set() {
 
   position=$(kit_reserved_is $name)
 
-  if [[ $(standard_is_empty $position) == "" ]] ; then
+  if [[ $(kit_core_is_empty $position) == "" ]] ; then
     return
   fi
 
@@ -77,6 +78,7 @@ kit_reserved_set() {
       "package_path_premade") package_path_premade=$value;;
       "package_path_binary") package_path_binary=$value;;
       "package_path_data") package_path_data=$value;;
+      "package_path_base") package_path_base=$value;;
       "package_url") package_url=$value;;
       "package_repository") package_repository=$value;;
       "package_major_minor_path") package_major_minor_path=$value;;
@@ -118,6 +120,7 @@ kit_reserved_set() {
       "about_copyright") about_copyright=$value;;
       "about_flags") about_flags=$value;;
       "premade_path") premade_path=$value;;
+      "if_condition") if_condition=$value;;
     esac
 
     kit_log_message save reserved "$name" "$value"
@@ -136,7 +139,7 @@ kit_reserved_get() {
   reserved=
   position=$(kit_reserved_is $name)
 
-  if [[ $(standard_is_empty $position) == "" ]] ; then
+  if [[ $(kit_core_is_empty $position) == "" ]] ; then
     return
   fi
 
@@ -195,6 +198,7 @@ kit_reserved_get() {
       "package_path_premade") reserved=$package_path_premade;;
       "package_path_binary") reserved=$package_path_binary;;
       "package_path_data") reserved=$package_path_data;;
+      "package_path_base") reserved=$package_path_base;;
       "package_url") reserved=$package_url;;
       "package_repository") reserved=$package_repository;;
       "package_major_minor_path") reserved=$package_major_minor_path;;
@@ -236,6 +240,7 @@ kit_reserved_get() {
       "about_copyright") reserved=$about_copyright;;
       "about_flags") reserved=$about_flags;;
       "premade_path") reserved=$premade_path;;
+      "if_condition") reserved=$if_condition;;
     esac
 
     kit_log_message load reserved "$name" "$reserved"
@@ -268,7 +273,7 @@ kit_reserved_register() {
 
 
   # register package reserved variables
-  for name in package package_type package_what package_huh package_oh package_settings_name package_path_url package_path_rules package_path_source package_path_premade package_path_binary package_path_data package_url package_repository package_major_minor_path package_version package_version_raw package_version_file ; do
+  for name in package package_type package_what package_huh package_oh package_settings_name package_path_url package_path_rules package_path_source package_path_premade package_path_binary package_path_data package_path_base package_url package_repository package_major_minor_path package_version package_version_raw package_version_file ; do
     reserved_variables="${reserved_variables}$name=package "
   done
 
@@ -294,7 +299,7 @@ kit_reserved_register() {
     reserved_variables="${reserved_variables}$name=rule "
   done
 
-  for name in premade_path ; do
+  for name in premade_path if_condition; do
     reserved_variables="${reserved_variables}$name=rule "
   done
 }

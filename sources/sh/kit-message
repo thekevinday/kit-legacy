@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for presenting errors to the screen and logging them.
 
 kit_message_unset() {
   unset kit_message_log
@@ -79,7 +80,7 @@ kit_message_important_no_log() {
 }
 
 kit_message_help() {
-  standard_help_title
+  kit_core_help_title
   echo -e "$c_highlight$system_name$c_reset $c_notice<${c_reset}operations$c_notice>$c_reset $c_notice[${c_reset}targets$c_notice]$c_reset $c_notice[${c_reset}options$c_notice]$c_reset"
   echo -e " ${c_important}install${c_reset}    Add a new package to the system"
   echo -e " ${c_important}procedure${c_reset}  Process a procedure on the system"
@@ -88,7 +89,7 @@ kit_message_help() {
   echo -e " ${c_important}update${c_reset}     Obtain the latest information for a given repository"
   echo -e " ${c_important}reset${c_reset}      Forcibly reset all local changes made to a given repository"
   echo
-  standard_help_options
+  kit_core_help_options
   echo -e " -${c_important}u${c_reset}, --${c_important}url${c_reset}                Alter url-specific options"
   echo -e " -${c_important}d${c_reset}, --${c_important}distribution${c_reset}       Alter distribution-specific options"
   echo -e " -${c_important}t${c_reset}, --${c_important}target${c_reset}             Alter target-specific options"

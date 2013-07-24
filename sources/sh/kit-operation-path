@@ -30,8 +30,8 @@ kit_operation_path() {
     kit_operation_error "Failed to process the '$c_notice$operation$c_error' operation data"
   fi
 
-  if [[ $(standard_is_empty $part) == "" ]] ; then
-    if [[ $(standard_is_empty $path_previous) == "" ]] ; then
+  if [[ $(kit_core_is_empty $part) == "" ]] ; then
+    if [[ $(kit_core_is_empty $path_previous) == "" ]] ; then
       kit_operation_error "The original path is not properly defined, cannot reset path"
     fi
 

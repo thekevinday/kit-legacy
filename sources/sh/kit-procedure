@@ -1,4 +1,6 @@
 #!/bin/bash
+# provides functions for processing and execution of procedure files.
+# TODO: this is incomplete.
 
 kit_procedure_unset() {
   unset kit_procedure_error
@@ -8,7 +10,7 @@ kit_procedure_unset() {
 kit_procedure_error() {
   kit_message_error "While processing the procedure '$c_notice$procedure$c_error', '$c_notice$procedure_what$c_error', '$c_notice$procedure_huh$c_error', '$c_notice$procedure_oh$c_error', '$c_notice$procedure_type$c_error' for the '$c_notice$distribution $distribution_version $distribution_flavor$c_error' distribution."
 
-  if [[ $(standard_is_empty $*) != "" ]] ; then
+  if [[ $(kit_core_is_empty $*) != "" ]] ; then
     kit_message_error "$*"
   fi
 

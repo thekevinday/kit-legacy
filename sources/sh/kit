@@ -190,7 +190,7 @@ main() {
       elif [[ $grab_next == "target huh" ]] ; then
         targets_huh="$targets_huh$i "
       elif [[ $grab_next == "target oh" ]] ; then
-        if [[ $(standard_is_empty $targets_oh) == "" ]] ; then
+        if [[ $(kit_core_is_empty $targets_oh) == "" ]] ; then
           targets_oh="$i"
         else
           kit_message_warning_no_log "For simplicity purposes, the current design only allows one 'oh' to be specified, the additional oh '${c_notice}$i${c_error}' is being ignored."
@@ -216,7 +216,7 @@ main() {
   done
 
 
-  standard_handle_colors
+  kit_core_handle_colors
 
 
   if [[ $do_help != "" ]] ; then
@@ -230,16 +230,16 @@ main() {
   fi
 
 
-  if [[ $(standard_is_empty $kit_operation ) == "" ]] ; then
+  if [[ $(kit_core_is_empty $kit_operation ) == "" ]] ; then
     kit_message_help
     return
   fi
 
-  if [[ $(standard_is_empty $targets_what ) == "" ]] ; then
+  if [[ $(kit_core_is_empty $targets_what ) == "" ]] ; then
     targets_what=runtime
   fi
 
-  if [[ $(standard_is_empty $distribution_base ) == "" ]] ; then
+  if [[ $(kit_core_is_empty $distribution_base ) == "" ]] ; then
     distribution_base=$system_cache_path$distribution_path$distribution_flavor/
   fi
 
@@ -335,7 +335,7 @@ main() {
     fi
 
     # attempt to load installation base path if it was not specified by a parameter
-    if [[ $(standard_is_empty $installation_base) == "" ]] ; then
+    if [[ $(kit_core_is_empty $installation_base) == "" ]] ; then
       if [[ $(fss_basic_list_read $system_settings_path$system_settings_file -t -n installation_base) -gt 0 ]] ; then
         if [[ $(fss_basic_list_read $system_settings_path$system_settings_file -n installation_base | fss_extended_read -t -n installation_base) -gt 0 ]] ; then
           kit_log_message load global "installation_base" "fss_basic_list_read $system_settings_path$system_settings_file -c 0 -n installation_base | fss_extended_read -c 0 -s 0 -n installation_base"
@@ -372,7 +372,7 @@ cleanup_before_exit() {
     return
   fi
 
-  if [[ $(standard_is_empty $distribution_base) != "" ]] ; then
+  if [[ $(kit_core_is_empty $distribution_base) != "" ]] ; then
     if [[ -d $distribution_base$targets_path ]] ; then
       rmdir --ignore-fail-on-non-empty $distribution_base$targets_path
     fi
@@ -382,8 +382,8 @@ cleanup_before_exit() {
     fi
   fi
 
-  if [[ $(standard_is_empty $distribution) != "" ]] ; then
-    if [[ $(standard_is_empty $distribution_version) != "" ]] ; then
+  if [[ $(kit_core_is_empty $distribution) != "" ]] ; then
+    if [[ $(kit_core_is_empty $distribution_version) != "" ]] ; then
       if [[ -d ${system_cache_path}distribution/${distribution}/${distribution_version}/ ]] ; then
         rmdir --ignore-fail-on-non-empty ${system_cache_path}distribution/${distribution}/${distribution_version}/
       fi
@@ -400,7 +400,7 @@ cleanup_before_exit() {
 }
 
 cleanup_main() {
-  standard_unset
+  kit_core_unset
 
   kit_fss_unset
   kit_message_unset
@@ -425,6 +425,7 @@ cleanup_main() {
   kit_operation_shell_unset
   kit_operation_strip_unset
   kit_operation_version_unset
+  kit_operation_if_unset
 
   unset cleanup_before_exit
   unset main
@@ -432,9 +433,9 @@ cleanup_main() {
 
 
 OLD_PATH=$PATH
-# PATH=_SCRIPT_LIBRARY_PREFIX_:_SCRIPT_LIBRARY2_PREFIX_:$PATH
+# PATH=_SCRIPT_LIBRARY_PREFIX_:$PATH
 
-source $(type -p turtle_kevux_scripts-standard)
+source $(type -p kit-core)
 source $(type -p kit-fss)
 source $(type -p kit-message)
 source $(type -p kit-log)
@@ -456,6 +457,7 @@ source $(type -p kit-operation-path)
 source $(type -p kit-operation-shell)
 source $(type -p kit-operation-strip)
 source $(type -p kit-operation-version)
+source $(type -p kit-operation-if)
 source $(type -p kit-rule)
 PATH=$OLD_PATH
 unset OLD_PATH
@@ -475,6 +477,6 @@ done
 unset c1 c2
 
 # execute the program
-standard_main_execute=main
-standard_main
+kit_core_main_execute=main
+kit_core_main
 cleanup_main

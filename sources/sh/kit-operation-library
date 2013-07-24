@@ -1,5 +1,5 @@
 #!/bin/bash
-# the library installs a library file.
+# the library operation installs a library file.
 # while installing, it handles stripping, settings permissions, and even symbolic linkage for shared libraries.
 #
 # arguments:
@@ -47,15 +47,15 @@ kit_operation_library() {
     kit_operation_error "Invalid type, must be one of: static, dynamic, module, or binutils"
   fi
 
-  if [[ $(standard_is_empty $name) == "" ]] ; then
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
     kit_operation_error "Missing library name"
   fi
 
-  if [[ $(standard_is_empty $destination) == "" ]] ; then
+  if [[ $(kit_core_is_empty $destination) == "" ]] ; then
     kit_operation_error "Missing destination path"
   fi
 
-  if [[ $(standard_is_empty $source) == "" ]] ; then
+  if [[ $(kit_core_is_empty $source) == "" ]] ; then
     kit_operation_error "Missing source path"
   fi
 
@@ -75,7 +75,7 @@ kit_operation_library() {
   elif [[ $type == "dynamic" ]] ; then
     library_source=$(find $source -maxdepth 1 -name "${name}.so*" -type f | line)
 
-    if [[ $(standard_is_empty $library_source) == "" ]] ; then
+    if [[ $(kit_core_is_empty $library_source) == "" ]] ; then
       kit_operation_error "Failed to find the library '$c_notice$source${name}.so$c_error'"
     fi
 
@@ -90,7 +90,7 @@ kit_operation_library() {
   elif [[ $type == "binutils" ]] ; then
     library_source=$(find $source -maxdepth 1 -name "${name}-${package_version}.so" -type f | line)
 
-    if [[ $(standard_is_empty $library_source) == "" ]] ; then
+    if [[ $(kit_core_is_empty $library_source) == "" ]] ; then
       kit_operation_error "Failed to find the library '$c_notice$source${name}-${package_version}.so$c_error'"
     fi
 
@@ -101,7 +101,7 @@ kit_operation_library() {
   kit_operation_attribute_apply file "$source$library_source"
   kit_operation_group_apply "$source$library_source"
   kit_operation_mode_apply file "$source$library_source"
-  #kit_operation_acess_apply file "$source$library_source"
+  #kit_operation_access_apply file "$source$library_source"
 
   kit_message_shell "cp --backup=simple --suffix=~ -a $source$library_source $installation_base$destination"
   cp --backup=simple --suffix=~ -a $source$library_source $installation_base$destination

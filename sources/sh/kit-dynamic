@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for reading and writing dynamic variables.
 
 kit_dynamic_unset() {
   unset kit_dynamic_error
@@ -63,7 +64,7 @@ kit_dynamic_get() {
     return
   fi
 
-  if [[ $(standard_is_empty $name_custom) == "" ]] ; then
+  if [[ $(kit_core_is_empty $name_custom) == "" ]] ; then
     name_custom=$name
   fi
 
@@ -186,7 +187,7 @@ kit_dynamic_process() {
         kit_dynamic_get "$name" "$name_custom"
         position=$(kit_dynamic_is $name)
 
-        if [[ $(standard_is_empty $position) == "" ]] ; then
+        if [[ $(kit_core_is_empty $position) == "" ]] ; then
           if [[ $type == "required" ]] ; then
             answer=
 
@@ -296,7 +297,7 @@ kit_dynamic_inline_resume() {
     kit_dynamic_error "Failed to load the resume file '$c_notice$resume_path$resume_file$c_error'"
   fi
 
-  if [[ $(standard_is_empty $total) == "" ]] ; then
+  if [[ $(kit_core_is_empty $total) == "" ]] ; then
     return
   fi
 
@@ -357,7 +358,7 @@ kit_dynamic_strategy_load() {
     kit_dynamic_error "Failed to read the '$c_notice$name${c_error}' strategy data length from '$c_notice$strategy_path$strategy_file$c_error'"
   fi
 
-  if [[ $(standard_is_empty $strategy_length) == "" || $strategy_length -eq 0 ]] ; then
+  if [[ $(kit_core_is_empty $strategy_length) == "" || $strategy_length -eq 0 ]] ; then
     return
   fi
 
@@ -427,7 +428,7 @@ kit_dynamic_safe_expand() {
   if [[ $type == "inline" ]] ; then
     kit_operation_format "$operation"
 
-    if [[ $format == "fss_basic" || $(standard_is_empty $line) == "" ]] ; then
+    if [[ $format == "fss_basic" || $(kit_core_is_empty $line) == "" ]] ; then
       line=$(echo "$line" | sed -e "s|\[<$name>]|$v|g")
 
       if [[ $? -ne 0 ]] ; then

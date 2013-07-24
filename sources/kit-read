@@ -1,6 +1,0 @@
-#!/bin/bash
-# ??? what was I doing here? is this deprecated?
-
-#kit_read_unset() {
-#  unset kit_read_line
-#}

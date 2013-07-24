@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for processing and execution of distribution files.
 
 kit_distribution_unset() {
   unset kit_distribution_load
@@ -58,7 +59,7 @@ kit_distribution_load() {
     fi
   fi
 
-  if [[ $kit_operation == "update" && $(standard_is_empty $targets) == "" ]] ; then
+  if [[ $kit_operation == "update" && $(kit_core_is_empty $targets) == "" ]] ; then
     kit_message_shell "git pull --quiet --progress"
     git pull --quiet --progress
 
@@ -69,7 +70,7 @@ kit_distribution_load() {
     fi
 
     echo -e "${c_highlight}The branch '${c_notice}$remote_branch$c_highlight' and flavor '${c_notice}$distribution_flavor$c_highlight' for the distribution '${c_notice}$distribution$c_highlight' has been updated.$c_reset"
-  elif [[ $kit_operation == "reset" && $(standard_is_empty $targets) == "" ]] ; then
+  elif [[ $kit_operation == "reset" && $(kit_core_is_empty $targets) == "" ]] ; then
     kit_message_shell "git reset --hard --quiet"
     git reset --hard --quiet
 

@@ -45,7 +45,7 @@ kit_operation_version() {
   if [[ $command == "set" ]] ; then
     version=$data
   elif [[ $command == "shell" ]] ; then
-    if [[ $(standard_is_empty $data) == "" ]] ; then
+    if [[ $(kit_core_is_empty $data) == "" ]] ; then
       kit_operation_error "For the '$c_notice$command$c_error' command, the actual command was not supplied."
     fi
 

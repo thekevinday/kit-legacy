@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides log generation functions.
 
 kit_log_unset() {
   unset kit_log_section

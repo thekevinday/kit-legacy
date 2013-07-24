@@ -32,11 +32,11 @@ kit_operation_attribute_apply() {
 
     kit_permission_get attr_file "$permission_attribute_file"
 
-    if [[ $(standard_is_empty $permission) == "" ]] ; then
+    if [[ $(kit_core_is_empty $permission) == "" ]] ; then
       return
     fi
 
-    if [[ $(standard_is_empty $recursive) == "" ]] ; then
+    if [[ $(kit_core_is_empty $recursive) == "" ]] ; then
       kit_message_shell "chattr $permission $filepath"
       chattr $permission $filepath
 
@@ -58,11 +58,11 @@ kit_operation_attribute_apply() {
 
     kit_permission_get attr_directory "$permission_attribute_directory"
 
-    if [[ $(standard_is_empty $permission) == "" ]] ; then
+    if [[ $(kit_core_is_empty $permission) == "" ]] ; then
       return
     fi
 
-    if [[ $(standard_is_empty $recursive) == "" ]] ; then
+    if [[ $(kit_core_is_empty $recursive) == "" ]] ; then
       kit_message_shell "chattr $permission $filepath"
       chattr $permission $filepath
 
@@ -81,7 +81,7 @@ kit_operation_attribute_apply() {
     if [[ $permission_attribute_file != "none" ]] ; then
       kit_permission_get attr_file "$permission_attribute_file"
 
-      if [[ $(standard_is_empty $permission) != "" ]] ; then
+      if [[ $(kit_core_is_empty $permission) != "" ]] ; then
         filepaths=$(find $filepath -type f)
 
         for i in $filepaths ; do
@@ -98,7 +98,7 @@ kit_operation_attribute_apply() {
     if [[ $permission_attribute_directory != "none" ]] ; then
       kit_permission_get attr_directory "$permission_attribute_directory"
 
-      if [[ $(standard_is_empty $permission) != "" ]] ; then
+      if [[ $(kit_core_is_empty $permission) != "" ]] ; then
         filepaths=$(find $filepath -type d)
 
         for i in $filepaths ; do
@@ -156,7 +156,7 @@ kit_operation_attribute() {
     kit_operation_error "For the '$c_notice$operation$c_error' operation, the '${c_notice}type$c_error' parameter can only be one of: file, directory, or both"
   fi
 
-  if [[ $(standard_is_empty $name) == "" ]] ; then
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
     kit_operation_error "The '${c_notice}name$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
   fi
 

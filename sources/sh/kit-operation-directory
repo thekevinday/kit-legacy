@@ -47,11 +47,11 @@ kit_operation_directory() {
   source=$(echo object $line | fss_extended_read -c 0 -s 2)
   source_name=$(echo object $line | fss_extended_read -c 0 -s 3)
 
-  if [[ $(standard_is_empty $name) == "" ]] ; then
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
     kit_operation_error "Missing file name"
   fi
 
-  if [[ $(standard_is_empty $destination) == "" ]] ; then
+  if [[ $(kit_core_is_empty $destination) == "" ]] ; then
     kit_operation_error "Missing destination path"
   fi
 
@@ -61,7 +61,7 @@ kit_operation_directory() {
     dereference="dereference"
   fi
 
-  if [[ $(standard_is_empty $source) == "" ]] ; then
+  if [[ $(kit_core_is_empty $source) == "" ]] ; then
     if [[ ! -f $installation_base$destination$name ]] ; then
       kit_message_shell "mkdir -p $installation_base$destination$name"
       mkdir -p $installation_base$destination$name
@@ -73,12 +73,12 @@ kit_operation_directory() {
       kit_operation_attribute_apply directory "$installation_base$destination$name" $dereference
       kit_operation_group_apply "$installation_base$destination$name" $dereference
       kit_operation_mode_apply directory "$installation_base$destination$name" $dereference
-      #kit_operation_acess_apply directory "$installation_base$destination$name" $dereference
+      #kit_operation_access_apply directory "$installation_base$destination$name" $dereference
     fi
   else
     source=$(echo $source | sed -e 's|/*$|/|' -e 's|/*$|/|')
 
-    if [[ $(standard_is_empty $source_name) == "" ]] ; then
+    if [[ $(kit_core_is_empty $source_name) == "" ]] ; then
       filepath=$source
     else
       filepath=$source$source_name
@@ -91,7 +91,7 @@ kit_operation_directory() {
     kit_operation_attribute_apply both "$installation_base$filepath" $dereference
     kit_operation_group_apply "$installation_base$filepath" $dereference
     kit_operation_mode_apply both "$installation_base$filepath" $dereference
-    #kit_operation_acess_apply both "$installation_base$filepath" $dereference
+    #kit_operation_access_apply both "$installation_base$filepath" $dereference
 
     if [[ $operation == "directory" ]] ; then
       kit_message_shell "cp -faR $filepath $installation_base$destination$name"

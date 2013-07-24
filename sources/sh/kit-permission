@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for reading and writing permission variables.
 
 kit_permission_unset() {
   unset kit_permission_is

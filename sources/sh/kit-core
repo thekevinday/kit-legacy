@@ -1,25 +1,25 @@
 #!/bin/bash
 # License: lgpl v2
 
-standard_unset(){
-  unset standard_main_execute
-  unset standard_main
-  unset standard_prepare_input
-  unset standard_handle_colors
-  unset standard_help_title
-  unset standard_help_options
-  unset standard_error
-  unset standard_warning
-  unset standard_is_empty
-  unset standard_unset
-  unset standard_to_lower
-  unset standard_to_upper
-  unset standard_alpha_numeric
-  unset standard_directory_ending
-  unset standard_get_random
+kit_core_unset(){
+  unset kit_core_main_execute
+  unset kit_core_main
+  unset kit_core_prepare_input
+  unset kit_core_handle_colors
+  unset kit_core_help_title
+  unset kit_core_help_options
+  unset kit_core_error
+  unset kit_core_warning
+  unset kit_core_is_empty
+  unset kit_core_unset
+  unset kit_core_to_lower
+  unset kit_core_to_upper
+  unset kit_core_alpha_numeric
+  unset kit_core_directory_ending
+  unset kit_core_get_random
 }
 
-standard_main(){
+kit_core_main(){
   local public_name=
   local system_name=
   local called_name=
@@ -55,10 +55,10 @@ standard_main(){
   local c_subtle="\\033[1;30m"
   local c_prefix="\\"
 
-  $standard_main_execute
+  $kit_core_main_execute
 }
 
-standard_handle_colors(){
+kit_core_handle_colors(){
   if [[ $do_color == "light" ]] ; then
     c_error="\\033[1;31m"
     c_warning="\\033[0;31m"
@@ -79,14 +79,14 @@ standard_handle_colors(){
   fi
 }
 
-standard_help_title(){
+kit_core_help_title(){
   echo
   echo -e "${c_title}$public_name$c_reset"
   echo -e "  ${c_notice}Version $version$c_reset"
   echo
 }
 
-standard_help_options(){
+kit_core_help_options(){
   echo -e "${c_highlight}Options:$c_reset"
   echo -e " -${c_important}h${c_reset}, --${c_important}help${c_reset}      Print this help screen"
   echo -e " +${c_important}l${c_reset}, ++${c_important}light${c_reset}     Use color modes that show up better on light backgrounds"
@@ -95,33 +95,33 @@ standard_help_options(){
   echo
 }
 
-standard_error(){
+kit_core_error(){
   echo -e "${c_error}ERROR: $*$c_reset"
 }
 
-standard_warning(){
+kit_core_warning(){
   echo -e "${c_warning}WARNING: $*$c_reset"
 }
 
-standard_is_empty(){
+kit_core_is_empty(){
   if [[ $(echo $1 | sed -e "s|[[:space:]]||g") != "" ]] ; then
     echo -n n
   fi
 }
 
-standard_to_lower(){
+kit_core_to_lower(){
   echo -n $(echo $* | sed -e 's/\(.*\)/\L\1/')
 }
 
-standard_to_upper(){
+kit_core_to_upper(){
   echo -n $(echo $* | sed -e 's/\(.*\)/\U\1/')
 }
 
-standard_alpha_numeric(){
+kit_core_alpha_numeric(){
   echo -n $(echo $* | sed -e 's|[[:punct:][:space:][:cntrl:]]*||g')
 }
 
-standard_directory_ending(){
+kit_core_directory_ending(){
   echo -n $(echo $i | sed -e 's|/*$|/|')
 }
 
@@ -133,7 +133,7 @@ standard_datetimestamp_safe(){
   echo -n $(date +%Y_%m_%d-%H_%M_%S%z)
 }
 
-standard_get_random(){
+kit_core_get_random(){
   local method=$1
   local minimum=$2
   local maximum=$3

@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for processing and execution of rule files.
 
 kit_rule_unset() {
   unset kit_rule_read
@@ -27,7 +28,7 @@ kit_rule_error() {
     kit_message_error "While processing rule line '$c_notice$line_number$c_error', operation '$c_notice$operation$c_error)."
   fi
 
-  if [[ $(standard_is_empty $*) != "" ]] ; then
+  if [[ $(kit_core_is_empty $*) != "" ]] ; then
     kit_message_error "$*"
   fi
 
@@ -124,6 +125,8 @@ kit_rule() {
   local resume_file=$kit_operation-$rule-$rule_what-$rule_huh-$rule_oh.resume
   local resume_rule_path=$resume_path
   local resume_rule_file=$kit_operation-$rule-$rule_what-$rule_huh-$rule_oh.rule
+
+  local if_condition=
 
   # dynamic variable management
   local dynamic_optional=
@@ -245,7 +248,7 @@ kit_rule() {
   # begin processing the generated rules file
   total=$(fss_basic_read -t $resume_rule_path$resume_rule_file)
 
-  if [[ $(kit_fss_has_error) != "" || $(standard_is_empty $total) == "" ]] ; then
+  if [[ $(kit_fss_has_error) != "" || $(kit_core_is_empty $total) == "" ]] ; then
     kit_rule_error "Failed to load the generated rules file '$c_notice$resume_rule_path$resume_rule_file$c_error'"
   fi
 

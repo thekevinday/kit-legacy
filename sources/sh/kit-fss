@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for reading and writing in fss format.
 
 kit_fss_unset() {
   unset kit_kit_has_fss_error
@@ -38,7 +39,7 @@ kit_fss_read() {
   local select=$6
   local data=
 
-  if [[ $(standard_is_empty $file) == "" || $(standard_is_empty $variable) == "" || $(standard_is_empty $list) == "" || $(standard_is_empty $count) == "" ]] ;then
+  if [[ $(kit_core_is_empty $file) == "" || $(kit_core_is_empty $variable) == "" || $(kit_core_is_empty $list) == "" || $(kit_core_is_empty $count) == "" ]] ;then
     kit_fss_exit_on_error $? "Invalid arguments passed to the '${c_notice}kit_fss_read$c_error' function while trying to process the file '$c_notice$file$c_error'"
   elif [[ $name == "" ]] ; then
     kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_extended_read -o"
@@ -64,7 +65,7 @@ kit_fss_read_path() {
   local select=$6
   local data=
 
-  if [[ $(standard_is_empty $file) == "" || $(standard_is_empty $variable) == "" || $(standard_is_empty $list) == "" || $(standard_is_empty $count) == "" ]] ;then
+  if [[ $(kit_core_is_empty $file) == "" || $(kit_core_is_empty $variable) == "" || $(kit_core_is_empty $list) == "" || $(kit_core_is_empty $count) == "" ]] ;then
     kit_fss_exit_on_error $? "Invalid arguments passed to the '${c_notice}kit_fss_read_path$c_error' function while trying to process the file '$c_notice$file$c_error'"
   elif [[ $name == "" ]] ; then
     kit_log_message load variable "$variable" "fss_basic_list_read $file -n $list | fss_extended_read -o | sed -e 's|/*$|/|'"

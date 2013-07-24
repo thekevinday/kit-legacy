@@ -1,4 +1,5 @@
 #!/bin/bash
+# provides functions for processing and execution of package files.
 
 kit_package_unset() {
   unset kit_package_read
@@ -26,7 +27,7 @@ kit_package_read_path() {
 kit_package_error() {
   kit_message_error "While processing the package '$c_notice$package$c_error', '$c_notice$package_what$c_error', '$c_notice$package_huh$c_error', '$c_notice$package_oh$c_error', '$c_notice$package_type$c_error' for the '$c_notice$distribution $distribution_version $distribution_flavor$c_error' distribution."
 
-  if [[ $(standard_is_empty $*) != "" ]] ; then
+  if [[ $(kit_core_is_empty $*) != "" ]] ; then
     kit_message_error "$*"
   fi
 
@@ -375,8 +376,8 @@ kit_package_version_check() {
             if [[ $version_minor == "x" || $about_version_minor == "x" ]] ; then
               version_difference="x"
               return
-            elif [[ $(standard_is_empty $version_minor) != "" ]] ; then
-              if [[ $(standard_is_empty $about_version_minor) != "" ]] ; then
+            elif [[ $(kit_core_is_empty $version_minor) != "" ]] ; then
+              if [[ $(kit_core_is_empty $about_version_minor) != "" ]] ; then
                 version_difference="same"
                 return
               fi
@@ -384,11 +385,11 @@ kit_package_version_check() {
               version_difference="unknown"
               return
             else
-              if [[ $(standard_is_empty $version_minor) != "" ]] ; then
+              if [[ $(kit_core_is_empty $version_minor) != "" ]] ; then
                 if [[ $version_micro == "x" || $about_version_micro == "x" ]] ; then
                   version_difference="x"
                   return
-                elif [[ $(standard_is_empty $about_version_micro) != "" ]] ; then
+                elif [[ $(kit_core_is_empty $about_version_micro) != "" ]] ; then
                   version_difference="same"
                   return
                 fi
@@ -512,8 +513,8 @@ kit_package_individual() {
     # TODO: at this point, if version_difference=="x" on an alter command attempt a git revision version test
 
     # TODO: now begin processing the rules
-    kit_message_shell "cd $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_source"
-    cd $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_source
+    kit_message_shell "cd $package_path_base$package_major_minor_path$package_path_source"
+    cd $package_path_base$package_major_minor_path$package_path_source
 
     if [[ $source_revision == "HEAD" ]] ; then
       package_version_raw=$(git log -1 --format="%h")
@@ -527,8 +528,8 @@ kit_package_individual() {
     # TODO: at this point, if version_difference=="x" on an alter command attempt a git revision version test
 
     # TODO: now begin processing the rules
-    kit_message_shell "cd $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_binary"
-    cd $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_binary
+    kit_message_shell "cd $package_path_base$package_major_minor_path$package_path_binary"
+    cd $package_path_base$package_major_minor_path$package_path_binary
 
     if [[ $binary_revision == "HEAD" ]] ; then
       package_version_raw=$(git log -1 --format="%h")
@@ -557,18 +558,18 @@ kit_package_individual() {
   # do cleanup
   if [[ $do_cleanup == "y" ]] ; then
     if [[ $package_type == "source" ]] ; then
-      if [[ -d "$system_cache_path$package_path_url$package_repository$package_path_premade" ]] ; then
-        rm -Rf "$system_cache_path$package_path_url$package_repository$package_path_premade"
+      if [[ -d "$package_path_base$package_path_premade" ]] ; then
+        rm -Rf "$package_path_base$package_path_premade"
       fi
 
-      if [[ -d "$system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_source" ]] ; then
-        rm -Rf "$system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_source"
-        rmdir --ignore-fail-on-non-empty "$system_cache_path$package_path_url$package_repository$package_major_minor_path"
+      if [[ -d "$package_path_base$package_major_minor_path$package_path_source" ]] ; then
+        rm -Rf "$package_path_base$package_major_minor_path$package_path_source"
+        rmdir --ignore-fail-on-non-empty "$package_path_base$package_major_minor_path"
       fi
     fi
 
-    if [[ -d "$system_cache_path$package_path_url$package_repository" ]] ; then
-      rmdir --ignore-fail-on-non-empty "$system_cache_path$package_path_url$package_repository"
+    if [[ -d "$package_path_base" ]] ; then
+      rmdir --ignore-fail-on-non-empty "$package_path_base"
     fi
 
     if [[ -d "$system_cache_path$package_path_url" ]] ; then
@@ -594,6 +595,7 @@ kit_package() {
   local package_path_premade=premade/
   local package_path_binary=binary/
   local package_path_data=data/
+  local package_path_base=
   local package_url=
   local package_repository=
   local package_major_minor_path=
@@ -683,6 +685,8 @@ kit_package() {
   kit_package_read_path package_url from url 0
   kit_package_read_path package_repository from repository 0
 
+  package_path_base=$system_cache_path$package_path_url$package_repository
+
 
   # revisions:
   kit_package_read rule_branch revisions rule 0 0
@@ -697,43 +701,43 @@ kit_package() {
   kit_package_read premade_revision revisions premade 0 1
 
   # assign defaults repositories in the event data is missing
-  if [[ $(standard_is_empty $rule_branch) == "" ]] ; then
+  if [[ $(kit_core_is_empty $rule_branch) == "" ]] ; then
     rule_branch=master
   fi
 
-  if [[ $(standard_is_empty $rule_revision) == "" ]] ; then
+  if [[ $(kit_core_is_empty $rule_revision) == "" ]] ; then
     rule_revision=HEAD
   fi
 
-  if [[ $(standard_is_empty $source_branch) == "" ]] ; then
+  if [[ $(kit_core_is_empty $source_branch) == "" ]] ; then
     source_branch=master
   fi
 
-  if [[ $(standard_is_empty $source_revision) == "" ]] ; then
+  if [[ $(kit_core_is_empty $source_revision) == "" ]] ; then
     source_revision=HEAD
   fi
 
-  if [[ $(standard_is_empty $binary_branch) == "" ]] ; then
+  if [[ $(kit_core_is_empty $binary_branch) == "" ]] ; then
     binary_branch=master
   fi
 
-  if [[ $(standard_is_empty $binary_revision) == "" ]] ; then
+  if [[ $(kit_core_is_empty $binary_revision) == "" ]] ; then
     binary_revision=HEAD
   fi
 
-  if [[ $(standard_is_empty $data_branch) == "" ]] ; then
+  if [[ $(kit_core_is_empty $data_branch) == "" ]] ; then
     data_branch=master
   fi
 
-  if [[ $(standard_is_empty $data_revision) == "" ]] ; then
+  if [[ $(kit_core_is_empty $data_revision) == "" ]] ; then
     data_revision=HEAD
   fi
 
-  if [[ $(standard_is_empty $premade_branch) == "" ]] ; then
+  if [[ $(kit_core_is_empty $premade_branch) == "" ]] ; then
     premade_branch=master
   fi
 
-  if [[ $(standard_is_empty $premade_revision) == "" ]] ; then
+  if [[ $(kit_core_is_empty $premade_revision) == "" ]] ; then
     premade_revision=HEAD
   fi
 
@@ -744,11 +748,11 @@ kit_package() {
     kit_package_error "The list '${c_notice}$package_what${c_error}' is not defined in file '${c_notice}$package_path$package_file${c_error}'"
   fi
 
-  if [[ $(standard_is_empty $(fss_basic_list_read -n $package_what -c 0 $package_path$package_file)) == "" ]] ; then
+  if [[ $(kit_core_is_empty $(fss_basic_list_read -n $package_what -c 0 $package_path$package_file)) == "" ]] ; then
     kit_package_error "The list '${c_notice}$package_what${c_error}' in file '${c_notice}$package_path$package_file${c_error}' is empty"
   fi
 
-  if [[ $(standard_is_empty $package_huh) == "" ]] ; then
+  if [[ $(kit_core_is_empty $package_huh) == "" ]] ; then
     package_huh=$(fss_basic_list_read -n $package_what -c 0 $package_path$package_file | fss_extended_read -o | sort | uniq)
 
     if [[ $(kit_fss_has_error) != "" ]] ; then
@@ -756,7 +760,7 @@ kit_package() {
     fi
   fi
 
-  if [[ $(standard_is_empty $package_oh) == "" ]] ; then
+  if [[ $(kit_core_is_empty $package_oh) == "" ]] ; then
     package_oh="object "
 
     for h in $package_huh ; do
@@ -796,6 +800,7 @@ kit_package() {
     return
   fi
 
+
   processed=
 
   # operate on individual package parts (what + huh + oh)
@@ -808,12 +813,13 @@ kit_package() {
       p2=$(fss_extended_write -p -s "$h" | sed -e 's|[[:space:]]*$||')
       p3=$(fss_extended_write -p -s "$o" | sed -e 's|[[:space:]]*$||')
 
-      if [[ $(echo $processed | grep -s -i "\<$o\>") == "" ]] ; then
+      if [[ $(echo $processed | grep -s -i "\<$o\>") == "" ]] ; then 
         if [[ ! -f "$resume_path$resume_file" || $(fss_basic_read -n processed $resume_path$resume_file | grep -s -o "^[[:space:]]*$p1[[:space:]]*$p2[[:space:]]*$p3[[:space:]]*$") == "" ]] ; then
           kit_package_individual $w $h $o
           echo "$(fss_extended_write -s processed)$p1 $p2 $p3" >> "$resume_path$resume_file"
-          processed="${processed}$o "
         fi
+
+        processed="${processed}$o "
       fi
 
       let c++
@@ -830,31 +836,31 @@ kit_package() {
 
   if [[ $do_cleanup == "y" ]] ; then
     # TODO: implement locking so that files don't get deleted until there are no instances left
-    if [[ -d $system_cache_path$package_path_url$package_repository$package_path_rules ]] ; then
-      rm -Rf $system_cache_path$package_path_url$package_repository$package_path_rules
+    if [[ -d $package_path_base$package_path_rules ]] ; then
+      rm -Rf $package_path_base$package_path_rules
     fi
 
     if [[ $package_type == "source" ]] ; then
-      if [[ -d $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_source ]] ; then
-        rm -Rf $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_source
+      if [[ -d $package_path_base$package_major_minor_path$package_path_source ]] ; then
+        rm -Rf $package_path_base$package_major_minor_path$package_path_source
       fi
 
-      if [[ -d $system_cache_path$package_path_url$package_repository$package_path_premade ]] ; then
-        rm -Rf $system_cache_path$package_path_url$package_repository$package_path_premade
+      if [[ -d $package_path_base$package_path_premade ]] ; then
+        rm -Rf $package_path_base$package_path_premade
       fi
     elif [[ $package_type == "binary" ]] ; then
-      if [[ -d $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_binary ]] ; then
-        rm -Rf $system_cache_path$package_path_url$package_repository$package_major_minor_path$package_path_binary
+      if [[ -d $package_path_base$package_major_minor_path$package_path_binary ]] ; then
+        rm -Rf $package_path_base$package_major_minor_path$package_path_binary
       fi
 
       # TODO: should data be stored under the directory $package_major_minor_path ?
-      if [[ -d $system_cache_path$package_path_url$package_repository$package_path_data ]] ; then
-        rm -Rf $system_cache_path$package_path_url$package_repository$package_path_data
+      if [[ -d $package_path_base$package_path_data ]] ; then
+        rm -Rf $package_path_base$package_path_data
       fi
     fi
 
-    if [[ -d $system_cache_path$package_path_url$package_repository ]] ; then
-      rmdir --ignore-fail-on-non-empty $system_cache_path$package_path_url$package_repository
+    if [[ -d $package_path_base ]] ; then
+      rmdir --ignore-fail-on-non-empty $package_path_base
     fi
 
     if [[ -d $system_cache_path$package_path_url ]] ; then

@@ -27,11 +27,11 @@ kit_operation_group_apply() {
 
   kit_permission_get "$permission_group_type" "$permission_group_name"
 
-  if [[ $(standard_is_empty $permission) == "" ]] ; then
+  if [[ $(kit_core_is_empty $permission) == "" ]] ; then
     return
   fi
 
-  if [[ $(standard_is_empty $recursive) == "" ]] ; then
+  if [[ $(kit_core_is_empty $recursive) == "" ]] ; then
     kit_message_shell "chgrp $permission $filepath"
     chgrp $permission $filepath
 
@@ -87,11 +87,11 @@ kit_operation_group() {
   name=$(echo object $line | fss_extended_read -c 0 -s 1)
 
 
-  if [[ $(standard_is_empty $type) == "" ]] ; then
+  if [[ $(kit_core_is_empty $type) == "" ]] ; then
     kit_operation_error "The '${c_notice}type$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
   fi
 
-  if [[ $(standard_is_empty $name) == "" ]] ; then
+  if [[ $(kit_core_is_empty $name) == "" ]] ; then
     kit_operation_error "The '${c_notice}name$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
   fi
 

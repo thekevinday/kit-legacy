@@ -8,7 +8,7 @@ kit_operation_unset() {
 }
 
 kit_operation_error() {
-  if [[ $(standard_is_empty $operation) != "" ]] ; then
+  if [[ $(kit_core_is_empty $operation) != "" ]] ; then
     kit_message_error_no_log "Operation $c_notice$operation$c_error on line #$c_notice$line_number$c_error from '$c_notice$resume_rule_path$resume_rule_file$c_error':$c_reset\n  ${c_error}$line"
   fi
 
@@ -19,7 +19,7 @@ kit_operation_error() {
 }
 
 kit_operation_warning() {
-  if [[ $(standard_is_empty $operation) != "" ]] ; then
+  if [[ $(kit_core_is_empty $operation) != "" ]] ; then
     kit_message_warning_no_log "Operation $c_notice$operation$c_warning on line #$c_notice$line_number$c_warning from '$c_notice$resume_rule_path$resume_rule_file$c_warning':$c_reset\n  ${c_warning}$line"
   fi
 
