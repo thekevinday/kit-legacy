@@ -4,6 +4,7 @@
 #
 # type values:
 #   - is: perform a comparison against the value of some variable.
+#   - not: perform an inverse comparison against the value of some variable.
 #   - like: perform comparison against the value of some variable, using regex. TODO: pcre? grep?
 #   - end: terminate an if block.
 #
@@ -29,11 +30,11 @@ kit_operation_if_resume() {
   if [[ $(fss_basic_read -t -n if_condition $resume_path$resume_file) -gt 0 ]] ; then
     condition=$(fss_basic_read -n if_condition -c 0 $resume_path$resume_file)
 
-    if [[ $(kit_fss_has_error) != "" ]] ; then
+    if [[ $(kit_fss_has_error) == "" ]] ; then
+      if_condition=$condition
+    else
       kit_operation_error "Error while processing the if data '${c_notice}if_condition$c_error' from the resume file '$c_notice$resume_path$resume_file$c_error', cannot resume"
     fi
-
-    if_condition=$condition
   fi
 }
 
@@ -44,7 +45,10 @@ kit_operation_if() {
   local r_value=
   local safe_object=
   local safe_content=
-  local position=
+  local found=
+  local reserved=
+  local dynamic=
+  local permission=
 
   # operation controls
   local parent=$parent-$self
@@ -52,7 +56,9 @@ kit_operation_if() {
 
   kit_operation_message
 
-  # TODO: if if_condition is already set, present error then return
+  if [[ $(kit_core_is_empty $if_condition) != "" ]] ; then
+    kit_operation_error "The '${c_notice}if_condition$c_error' cannot be called while in another if statememt. Nesting is unsupported."
+  fi
 
   type=$(echo object $line | fss_extended_read -c 0 -s 0)
   name=$(echo object $line | fss_extended_read -c 0 -s 1)
@@ -62,40 +68,48 @@ kit_operation_if() {
     kit_operation_error "The '${c_notice}type$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
   fi
 
-  if [[ $type == "is" ]] ; then
+  if [[ $type == "is" || $type == "not" ]] ; then
     if [[ $(kit_core_is_empty $name) == "" ]] ; then
       kit_operation_error "The '${c_notice}name$c_error' parameter for the '$c_notice$operation$c_error' operation is missing"
     fi
 
-    position=$(kit_reserved_is $name)
+    found=$(kit_reserved_is $name)
 
-    if [[ $(kit_core_is_empty $position) == "" ]] ; then
-      position=$(kit_dynamic_is $name)
+    if [[ $(kit_core_is_empty $found) == "" ]] ; then
+      found=$(kit_dynamic_is $name)
 
-      if [[ $(kit_core_is_empty $position) == "" ]] ; then
-        position=$(kit_permission_is $name)
+      if [[ $(kit_core_is_empty $found) == "" ]] ; then
+        found=$(kit_permission_is $name)
 
-        if [[ $(kit_core_is_empty $position) == "" ]] ; then
+        if [[ $(kit_core_is_empty $found) == "" ]] ; then
           l_value=
-          # TODO: if variable does not exist, print error and return.
+
+          kit_operation_error "There is no variable by the name of '$c_notice$name$c_error' for the '$c_notice$operation$c_error' operation"
         else
           kit_permission_get $name
-          l_value=$reserved
+          l_value=$permission
         fi
       else
         kit_dynamic_get $name
-        l_value=$reserved
+        l_value=$dynamic
       fi
-      # TODO: also check for non-reserved variables.
     else
       kit_reserved_get $name
       l_value=$reserved
     fi
 
-    if [[ $l_value == $r_value ]] ; then
-      if_condition=true
-    else
-      if_condition=false
+    if [[ $type == "is" ]] ; then
+      if [[ $l_value == $r_value ]] ; then
+        if_condition=true
+      else
+        if_condition=false
+      fi
+    elif [[ $type == "not" ]] ; then
+      if [[ $l_value != $r_value ]] ; then
+        if_condition=true
+      else
+        if_condition=false
+      fi
     fi
 
     sed -i -e '/^[[:space:]]*if_condition\>[[:space:]]*/d' $resume_path$resume_file

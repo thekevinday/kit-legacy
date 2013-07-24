@@ -217,6 +217,8 @@ kit_rule() {
       kit_operation_path_resume
       kit_operation_version_resume
 
+      kit_operation_if_resume
+
       kit_dynamic_inline_resume
     else
       resume_execution=
@@ -263,6 +265,13 @@ kit_rule() {
 
     kit_dynamic_process inline "$parent-$rule"
 
+    if [[ $if_condition == "false" ]] ; then
+      kit_log_message message "skipping operation '${operation}' on line $line_number because the current if state is false."
+
+      let c++
+      continue
+    fi
+
     case $operation in
       "shell") kit_operation_shell ;;
       "version") kit_operation_version ;;
@@ -275,6 +284,7 @@ kit_rule() {
       "library") kit_operation_library ;;
       "strip") kit_operation_strip ;;
       "path") kit_operation_path ;;
+      "if") kit_operation_if ;;
       *) kit_message_warning "No such operation called '$c_notice$operation$c_reset'"
     esac
 
