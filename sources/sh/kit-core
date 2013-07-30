@@ -125,11 +125,11 @@ kit_core_directory_ending(){
   echo -n $(echo $i | sed -e 's|/*$|/|')
 }
 
-standard_datetimestamp(){
+kit_core_datetimestamp(){
   echo -n $(date +%Y-%m-%dT%H:%M:%S%z)
 }
 
-standard_datetimestamp_safe(){
+kit_core_datetimestamp_safe(){
   echo -n $(date +%Y_%m_%d-%H_%M_%S%z)
 }
 
