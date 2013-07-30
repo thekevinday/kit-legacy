@@ -5,6 +5,7 @@ kit_operation_unset() {
   unset kit_operation_error
   unset kit_operation_message
   unset kit_operation_format
+  unset kit_operation_unset
 }
 
 kit_operation_error() {

@@ -7,6 +7,7 @@ kit_rule_unset() {
   unset kit_rule_error
   unset kit_rule_repository_load_premade
   unset kit_rule
+  unset kit_rule_unset
 }
 
 kit_rule_read() {

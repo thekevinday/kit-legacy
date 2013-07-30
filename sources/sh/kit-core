@@ -11,12 +11,12 @@ kit_core_unset(){
   unset kit_core_error
   unset kit_core_warning
   unset kit_core_is_empty
-  unset kit_core_unset
   unset kit_core_to_lower
   unset kit_core_to_upper
   unset kit_core_alpha_numeric
   unset kit_core_directory_ending
   unset kit_core_get_random
+  unset kit_core_unset
 }
 
 kit_core_main(){

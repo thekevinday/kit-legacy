@@ -5,6 +5,7 @@
 kit_procedure_unset() {
   unset kit_procedure_error
   unset kit_procedure
+  unset kit_procedure_unset
 }
 
 kit_procedure_error() {

@@ -2,10 +2,11 @@
 # provides functions for reading and writing in fss format.
 
 kit_fss_unset() {
-  unset kit_kit_has_fss_error
+  unset kit_fss_has_error
   unset kit_fss_exit_on_error
   unset kit_fss_read
   unset kit_fss_read_path
+  unset kit_fss_unset
 }
 
 

@@ -13,6 +13,7 @@ kit_operation_group_unset() {
   unset kit_operation_group_apply
   unset kit_operation_group_resume
   unset kit_operation_group
+  unset kit_operation_group_unset
 }
 
 kit_operation_group_apply() {

@@ -12,6 +12,7 @@
 kit_operation_path_unset() {
   unset kit_operation_path
   unset kit_operation_path_resume
+  unset kit_operation_path_unset
 }
 
 kit_operation_path() {

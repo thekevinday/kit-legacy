@@ -9,6 +9,7 @@
 
 kit_operation_shell_unset() {
   unset kit_operation_shell
+  unset kit_operation_shell_unset
 }
 
 kit_operation_shell() {

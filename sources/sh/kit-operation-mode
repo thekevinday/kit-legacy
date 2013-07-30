@@ -14,6 +14,7 @@ kit_operation_mode_unset() {
   unset kit_operation_mode_apply
   unset kit_operation_mode_resume
   unset kit_operation_mode
+  unset kit_operation_mode_unset
 }
 
 kit_operation_mode_apply() {

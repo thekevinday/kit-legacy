@@ -14,6 +14,7 @@ kit_operation_access_unset() {
   unset kit_operation_access_apply
   unset kit_operation_access_resume
   unset kit_operation_access
+  unset kit_operation_access_unset
 }
 
 kit_operation_access_apply() {

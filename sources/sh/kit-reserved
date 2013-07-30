@@ -6,6 +6,7 @@ kit_reserved_unset() {
   unset kit_reserved_get
   unset kit_reserved_set
   unset kit_reserved_register
+  unset kit_reserved_unset
 }
 
 kit_reserved_is() {

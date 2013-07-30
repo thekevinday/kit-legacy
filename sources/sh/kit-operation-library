@@ -22,6 +22,7 @@
 
 kit_operation_library_unset() {
   unset kit_operation_library
+  unset kit_operation_library_unset
 }
 
 kit_operation_library() {

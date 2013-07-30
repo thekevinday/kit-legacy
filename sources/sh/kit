@@ -429,6 +429,7 @@ cleanup_main() {
 
   unset cleanup_before_exit
   unset main
+  unset cleanup_main
 }
 
 

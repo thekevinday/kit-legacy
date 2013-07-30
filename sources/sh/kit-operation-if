@@ -21,6 +21,7 @@
 kit_operation_if_unset() {
   unset kit_operation_if_resume
   unset kit_operation_if
+  unset kit_operation_if_unset
 }
 
 kit_operation_if_resume() {

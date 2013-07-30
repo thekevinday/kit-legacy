@@ -19,6 +19,7 @@
 kit_operation_strip_unset() {
   unset kit_operation_strip
   unset kit_operation_strip_apply
+  unset kit_operation_strip_unset
 }
 
 kit_operation_strip() {

@@ -5,6 +5,7 @@ kit_permission_unset() {
   unset kit_permission_is
   unset kit_permission_set
   unset kit_permission_get
+  unset kit_permission_unset
 }
 
 kit_permission_is() {

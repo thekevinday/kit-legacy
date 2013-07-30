@@ -3,6 +3,7 @@
 
 kit_distribution_unset() {
   unset kit_distribution_load
+  unset kit_distribution_unset
 }
 
 kit_distribution_load() {

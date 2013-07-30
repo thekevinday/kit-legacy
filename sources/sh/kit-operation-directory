@@ -24,6 +24,7 @@
 
 kit_operation_directory_unset() {
   unset kit_operation_directory
+  unset kit_operation_directory_unset
 }
 
 kit_operation_directory() {

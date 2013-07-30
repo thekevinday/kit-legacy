@@ -15,6 +15,7 @@ kit_message_unset() {
   unset kit_message_highlight_no_log
   unset kit_message_important_no_log
   unset kit_message_help
+  unset kit_message_unset
 }
 
 kit_message_log() {

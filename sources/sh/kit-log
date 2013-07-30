@@ -5,6 +5,7 @@ kit_log_unset() {
   unset kit_log_section
   unset kit_log_message
   unset kit_log_message_raw
+  unset kit_log_unset
 }
 
 kit_log_section() {

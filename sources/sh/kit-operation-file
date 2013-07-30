@@ -36,6 +36,7 @@
 
 kit_operation_file_unset() {
   unset kit_operation_file
+  unset kit_operation_file_unset
 }
 
 kit_operation_file() {
