@@ -14,7 +14,7 @@ kit_log_section() {
   fi
 
   echo >> $logs_path$logs_file
-  echo "$(standard_datetimestamp_safe):" >> $logs_path$logs_file
+  echo "$(kit_core_datetimestamp_safe):" >> $logs_path$logs_file
 }
 
 kit_log_message() {
