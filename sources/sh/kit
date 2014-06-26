@@ -4,7 +4,7 @@
 # See: https://www.kevux.org/ or https://primary.kevux/
 # Dependencies: bash uniq sort sed grep fss_basic_read fss_extended_read fss_basic_list_read fss_basic_write fss_extended_write fss_basic_list_write fss_return_code rm rmdir cp ln strip chown chmod chgrp chattr chacl find git touch mknod gcc as file line
 
-# TODO: for security purposes, when doing compilation, add a variable that defines a users to su as during compilation of sources.
+# TODO: for security purposes, when doing compilation, add a variable that defines a user to su as during compilation of sources.
 #       said user account must have access to all appropriate cache paths.
 #       consider creating this as an operation called 'safe' (a variant of the 'shell' command), such as: safe ./configure
 
@@ -259,7 +259,7 @@ main() {
   # TODO: come up with a list of all of the other possible options, like revert, and figure out if and how they are to be implemented
   case $kit_operation in
     "distribution")
-      # TODO: execution a series of procedures and packages accodring to a given distribution
+      # TODO: execution a series of procedures and packages according to a given distribution
       kit_message_warning_no_log "'$c_notice$kit_operation$c_warning' is currently not implemented."
       cleanup_before_exit
       exit -1
